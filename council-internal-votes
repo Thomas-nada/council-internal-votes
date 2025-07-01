@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intersect Constitutional Council Voting (with Summaries)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Flatpickr Date Picker CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        /* Modal styling */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center;
+            align-items: center; z-index: 1000; transition: opacity 0.3s ease-in-out;
+        }
+        .modal-content {
+            background-color: white; padding: 2.5rem; border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
+            width: 90%; max-width: 450px; transition: transform 0.3s ease-in-out;
+        }
+        
+        /* Button Styles */
+        .btn {
+            padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid transparent; cursor: pointer;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
+        .btn-primary { background-image: linear-gradient(to right, #4f46e5, #6366f1); color: white; }
+        .btn-secondary { background-color: #e2e8f0; color: #334155; }
+        .btn-danger { background-image: linear-gradient(to right, #ef4444, #f87171); color: white; }
+        .btn-warning { background-image: linear-gradient(to right, #f97316, #fb923c); color: white; }
+        .btn-success { background-image: linear-gradient(to right, #22c55e, #4ade80); color: white; }
+        .btn-purple { background-image: linear-gradient(to right, #8b5cf6, #a78bfa); color: white; }
+        .btn-outline-purple { border-color: #8b5cf6; color: #8b5cf6; background-color: white; }
+        .btn-outline-purple:hover:not(:disabled) { background-color: #f5f3ff; }
+        
+        /* Vote button styling */
+        .vote-button-group .vote-button { opacity: 0.6; transform: scale(0.95); }
+        .vote-button-group .vote-button:hover:not(:disabled) { opacity: 1; transform: scale(1); }
+        .vote-button-group .vote-button.selected {
+            opacity: 1; transform: scale(1.05);
+            box-shadow: 0 0 0 3px white, 0 0 0 5px #6366f1;
+        }
+        
+        /* Input & Accordion Styling */
+        input, select {
+            border-radius: 0.75rem; padding: 0.75rem 1rem; border: 1px solid #d1d5db;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        input:focus, select:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3); }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out; padding: 0 1.5rem; }
+        .accordion-content.open { max-height: 1200px; /* Adjust as needed */ padding: 1.5rem; }
+        .accordion-header i { transition: transform 0.3s ease-in-out; }
+        .accordion-header.open i { transform: rotate(180deg); }
+
+        .modal-overlay.hidden { opacity: 0; pointer-events: none; }
+        .modal-overlay.hidden .modal-content { transform: scale(0.95); }
+
+        /* View Toggle Switch */
+        .view-toggle-btn { padding: 0.5rem 1.5rem; border-radius: 9999px; font-weight: 500; color: #475569; transition: all 0.3s ease; }
+        .view-toggle-btn.active { background-color: white; color: #4f46e5; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .flatpickr-day.epoch-boundary { background: #fee2e2 !important; color: #991b1b !important; border: 1px solid #fca5a5 !important; font-weight: 700; }
+        .flatpickr-day.epoch-boundary:hover { background: #fecaca !important; color: #7f1d1d !important; }
+    </style>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, getDocs, deleteDoc, orderBy, getDoc, updateDoc, where, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBSVE6WIdkRNbyOEg30gsr5hY2ZGVIHXdo",
+            authDomain: "council-voting-app.firebaseapp.com",
+            projectId: "council-voting-app",
+            storageBucket: "council-voting-app.appspot.com",
+            messagingSenderId: "225116919325",
+            appId: "1:225116919325:web:0ae3d60e6ab32bc65d18f4"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        window.firebase = { db, auth, onAuthStateChanged, signOut, signInAnonymously, doc, setDoc, onSnapshot, collection, query, getDocs, deleteDoc, orderBy, getDoc, updateDoc, where, writeBatch, serverTimestamp };
+    </script>
+    <!-- Flatpickr Date Picker JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="voteConfirmationPopup" class="fixed top-5 right-5 bg-green-500 text-white py-3 px-6 rounded-xl shadow-lg opacity-0 transition-opacity duration-300 ease-in-out" style="z-index: 2000;">Vote Registered!</div>
+    <div id="confirmationModal" class="modal-overlay hidden">
+        <div class="modal-content text-center"><h3 class="text-xl font-bold text-gray-800 mb-4" id="confirmModalTitle">Confirm Action</h3><p class="text-gray-700 mb-6" id="confirmMessage">Are you sure?</p><div class="flex justify-center space-x-4"><button id="cancelConfirmBtn" class="btn btn-secondary">Cancel</button><button id="confirmActionBtn" class="btn btn-danger">Confirm</button></div></div>
+    </div>
+    
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-content text-center">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Welcome</h2>
+            <p class="text-gray-600 mb-6">to the Intersect Constitutional Council Voting App</p>
+            <div id="loginFormContainer" class="pt-4 mt-4 border-t border-gray-200 space-y-4">
+                 <select id="memberSelect" class="w-full"></select>
+                 <input type="password" id="memberCode" class="w-full" placeholder="Enter your code...">
+            </div>
+            <p id="loginError" class="text-red-500 text-sm my-4"></p>
+            <button id="loginBtn" class="w-full btn btn-primary">Login</button>
+        </div>
+    </div>
+
+    <div id="changeCodeModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Change Your Login Code</h3>
+            <div class="space-y-4">
+                <div>
+                    <label for="newCodeInput" class="block text-sm font-medium text-gray-700">New Code</label>
+                    <input type="password" id="newCodeInput" class="w-full mt-1" placeholder="Enter a new secure code">
+                </div>
+                <div>
+                    <label for="confirmCodeInput" class="block text-sm font-medium text-gray-700">Confirm New Code</label>
+                    <input type="password" id="confirmCodeInput" class="w-full mt-1" placeholder="Enter the new code again">
+                </div>
+            </div>
+            <p id="changeCodeError" class="text-red-500 text-sm mt-4 h-4"></p>
+            <div class="flex justify-end space-x-4 mt-6">
+                <button id="cancelChangeCodeBtn" class="btn btn-secondary">Cancel</button>
+                <button id="saveChangeCodeBtn" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="resultsModal" class="modal-overlay hidden"><div class="modal-content !max-w-3xl"><div class="flex justify-between items-start"><h3 class="text-2xl font-bold text-gray-800 mb-4" id="resultsModalTitle">Vote Details</h3><button id="closeResultsModalBtn" class="text-3xl leading-none font-bold text-gray-400 hover:text-gray-800">&times;</button></div><div id="resultsModalContent" class="space-y-6 max-h-[70vh] overflow-y-auto pr-2"></div></div></div>
+
+    <!-- Main App Container -->
+    <div id="appContainer" class="max-w-7xl mx-auto hidden">
+        <header class="bg-white rounded-2xl shadow-md p-6 mb-8 flex flex-col sm:flex-row justify-between items-center">
+            <h1 class="text-3xl font-bold text-gray-800">Council Voting</h1>
+            <div class="flex items-center gap-4 mt-4 sm:mt-0">
+                <div id="userInfo" class="text-right">
+                    <p class="text-gray-600">Logged in as</p>
+                    <p id="currentMemberDisplay" class="font-semibold text-xl text-blue-700">Not Selected</p>
+                </div>
+                <button id="changeCodeBtn" title="Change Code" class="hidden btn btn-secondary !p-3 !rounded-full h-12 w-12 flex items-center justify-center">
+                    <i class="fas fa-key text-xl"></i>
+                </button>
+                <button id="logoutBtn" title="Logout" class="btn btn-secondary !p-3 !rounded-full h-12 w-12 flex items-center justify-center">
+                    <i class="fas fa-sign-out-alt text-xl"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Member Summary Panel -->
+        <div id="memberSummaryPanel" class="hidden bg-white rounded-2xl shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Your Voting Summary</h2>
+            <div id="memberSummaryContent" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                 <div class="p-4 bg-gray-50 rounded-lg animate-pulse h-20"></div><div class="p-4 bg-gray-50 rounded-lg animate-pulse h-20"></div><div class="p-4 bg-gray-50 rounded-lg animate-pulse h-20"></div><div class="p-4 bg-gray-50 rounded-lg animate-pulse h-20"></div>
+            </div>
+        </div>
+
+        <!-- Admin Panel (Collapsible) -->
+        <div id="adminPanel" class="hidden bg-white rounded-2xl shadow-md mb-8">
+            <div id="adminAccordionHeader" class="p-6 cursor-pointer flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800">Admin Tools</h2><i class="fas fa-chevron-down text-gray-500"></i></div>
+            <div id="adminAccordionContent" class="accordion-content border-t border-gray-200">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Add/Remove Actions --><div class="space-y-4"><h3 class="font-bold text-lg text-gray-700">Manage Actions</h3><input type="text" id="newActionIdInput" class="w-full" placeholder="Gov Action ID"/><input type="text" id="newActionTitle" class="w-full" placeholder="New Action Title"/><input type="url" id="newGovToolLink" class="w-full" placeholder="Gov Tool Link"/><div><label for="newActionDeadline" class="font-medium text-sm text-gray-600">Voting Deadline</label><input type="text" id="newActionDeadline" class="w-full" placeholder="Select deadline date & time"/></div><button id="addActionButton" class="w-full btn btn-primary">Add New Action</button><select id="archiveActionSelect" class="w-full mt-4"></select><button id="archiveActionButton" class="w-full btn btn-warning">Archive Selected Action</button><select id="deleteActionSelect" class="w-full mt-4"></select><button id="deleteActionButton" class="w-full btn btn-danger">Delete Selected Action</button><p id="actionManagementStatus" class="text-sm text-gray-600 h-4"></p></div>
+                    <!-- User Access & Global Controls --><div class="space-y-6"><h3 class="font-bold text-lg text-gray-700">User Access</h3><div id="userAccessControls" class="space-y-3"></div><h3 class="font-bold text-lg text-gray-700 pt-4 border-t">Global Controls</h3><button id="resetAllVotesBtn" class="w-full btn btn-danger">Reset All Votes</button><p id="globalStatus" class="text-sm text-gray-600 text-center h-4"></p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Summary Report (Visible to ALL users) -->
+        <div id="fullSummaryReportContainer" class="hidden bg-white rounded-2xl shadow-md p-6 mb-8">
+            <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-800">Full Summary Report</h2><button id="toggleArchivedSummaryBtn" class="btn btn-secondary btn-sm">Show Archived</button></div>
+            <div id="summaryReportContent" class="overflow-x-auto"><div class="text-center p-4 animate-pulse">Generating full summary...</div></div>
+        </div>
+
+        <!-- View Toggle -->
+        <div id="viewToggle" class="flex justify-center mb-6 bg-gray-200 p-1 rounded-full w-max mx-auto"><button data-view="active" class="view-toggle-btn active">Active</button><button data-view="archived" class="view-toggle-btn">Archive</button></div>
+        <!-- Governance Actions List -->
+        <main id="actionsContainer" class="space-y-6"></main>
+    </div>
+
+    <script type="module">
+        const { db, auth, onAuthStateChanged, signOut, signInAnonymously, doc, setDoc, onSnapshot, collection, query, getDocs, deleteDoc, orderBy, getDoc, updateDoc, where, writeBatch, serverTimestamp } = window.firebase;
+
+        // Configuration
+        const regularMembersList = ["Hosky", "Ian", "Jose", "Juan", "Mauro", "Mercy", "Ubio"];
+        const members = [...regularMembersList, "Admin"];
+        const QUORUM_REQUIRED = 5;
+        
+        // State variables
+        let currentMember = null;
+        let isLoggingIn = false; // Flag to prevent race conditions
+        let governanceActions = [];
+        let memberVotes = {};
+        let unsubscribeActions = null;
+        let unsubscribeVotes = null;
+        let unsubscribeLoginCodes = null;
+        let currentView = 'active';
+        let showArchivedInSummary = false;
+
+        // DOM Elements
+        const loginModal = document.getElementById('loginModal');
+        const appContainer = document.getElementById('appContainer');
+        const actionsContainer = document.getElementById('actionsContainer');
+        const currentMemberDisplay = document.getElementById('currentMemberDisplay');
+        const adminPanel = document.getElementById('adminPanel');
+        const memberSummaryPanel = document.getElementById('memberSummaryPanel');
+        const fullSummaryContainer = document.getElementById('fullSummaryReportContainer');
+        const summaryReportContent = document.getElementById('summaryReportContent');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const changeCodeBtn = document.getElementById('changeCodeBtn');
+        const changeCodeModal = document.getElementById('changeCodeModal');
+
+        // --- Core Logic ---
+        function initializeAppForMember(member) {
+            currentMember = member;
+            currentMemberDisplay.textContent = member;
+
+            loginModal.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+
+            fullSummaryContainer.classList.remove('hidden');
+            
+            if (member === 'Admin') {
+                adminPanel.classList.remove('hidden');
+                memberSummaryPanel.classList.add('hidden');
+                changeCodeBtn.classList.add('hidden');
+                initializeDatePicker();
+                setupAdminAccessControls();
+            } else {
+                adminPanel.classList.add('hidden');
+                memberSummaryPanel.classList.remove('hidden');
+                changeCodeBtn.classList.remove('hidden');
+                setupMemberVotesListener();
+            }
+            setupActionsListener();
+            startGlobalTimer();
+        }
+
+        async function handleLogout() {
+            if (unsubscribeActions) unsubscribeActions();
+            if (unsubscribeVotes) unsubscribeVotes();
+            if (unsubscribeLoginCodes) unsubscribeLoginCodes();
+
+            const user = auth.currentUser;
+            if (user) {
+                const sessionRef = doc(db, 'sessions', user.uid);
+                await deleteDoc(sessionRef).catch(err => console.error("Error deleting session doc:", err));
+            }
+
+            await signOut(auth);
+
+            currentMember = null;
+            showArchivedInSummary = false; 
+
+            appContainer.classList.add('hidden');
+            loginModal.classList.remove('hidden');
+            
+            document.getElementById('memberSelect').value = '';
+            document.getElementById('memberCode').value = '';
+            document.getElementById('loginError').textContent = '';
+        }
+
+        function setupActionsListener() {
+            if (unsubscribeActions) unsubscribeActions();
+            const actionsRef = collection(db, 'governance_actions');
+            unsubscribeActions = onSnapshot(query(actionsRef, orderBy('id')), snapshot => {
+                governanceActions = snapshot.docs.map(d => d.data());
+                renderActions();
+                renderFullSummary();
+
+                if (currentMember === 'Admin') {
+                    populateAdminSelects();
+                } else {
+                    renderMemberSummary();
+                }
+            }, err => {
+                console.error("Actions listener failed:", err);
+                alert("Error: Could not load voting actions. Check permissions and network.");
+            });
+        }
+
+        function setupMemberVotesListener() {
+            if (unsubscribeVotes) unsubscribeVotes();
+            const votesRef = collection(db, 'members_data', currentMember, 'individual_votes');
+            unsubscribeVotes = onSnapshot(votesRef, snapshot => {
+                memberVotes = {};
+                snapshot.forEach(d => { memberVotes[d.id] = d.data().vote; });
+                renderActions();
+                renderMemberSummary();
+            });
+        }
+        
+        // --- Deadline & Timer Logic ---
+        function formatTimeRemaining(deadlineISO) {
+            if (!deadlineISO) return { text: '', color: 'text-gray-500', isPast: false };
+            const now = new Date();
+            const deadline = new Date(deadlineISO);
+            const diff = deadline - now;
+
+            if (diff <= 0) return { text: 'Voting Closed', color: 'text-red-600 font-bold', isPast: true };
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            
+            let text = 'Closes in ';
+            if(days > 0) text += `${days}d `;
+            if(hours > 0) text += `${hours}h `;
+            if(days === 0 && hours === 0) text += `${minutes}m`;
+
+            const color = diff < (24 * 60 * 60 * 1000) ? 'text-orange-600' : 'text-gray-500';
+            return { text: text.trim(), color, isPast: false };
+        }
+
+        function startGlobalTimer() {
+            setInterval(() => {
+                governanceActions.forEach(action => {
+                    if (!action.deadline) return;
+                    const card = document.querySelector(`.action-card[data-id="${action.id}"]`);
+                    if (!card) return;
+
+                    const timerEl = card.querySelector('.deadline-timer');
+                    const { text, color, isPast } = formatTimeRemaining(action.deadline);
+                    if (timerEl) {
+                        timerEl.textContent = text;
+                        timerEl.className = `deadline-timer text-sm font-medium ${color}`;
+                    }
+                    if (isPast && currentMember !== 'Admin') {
+                        card.querySelectorAll('.vote-button').forEach(btn => btn.disabled = true);
+                        card.querySelector('.vote-button-group')?.classList.add('opacity-50');
+                    }
+                });
+            }, 60000);
+        }
+
+        // --- Rendering ---
+        function renderActions() {
+            actionsContainer.innerHTML = '';
+            const actionsToRender = governanceActions.filter(action => {
+                const isArchived = action.status === 'archived';
+                return currentView === 'archived' ? isArchived : !isArchived;
+            });
+
+            if (actionsToRender.length === 0) {
+                actionsContainer.innerHTML = `<div class="text-center p-8 bg-white rounded-2xl shadow-md"><p class="text-gray-500">No ${currentView} actions found.</p></div>`;
+                return;
+            }
+
+            actionsToRender.forEach(action => {
+                const card = document.createElement('div');
+                card.className = 'action-card bg-white rounded-2xl shadow-md p-6';
+                card.dataset.id = action.id;
+                card.innerHTML = (currentMember === 'Admin') 
+                    ? createAdminCardContent(action) 
+                    : (currentView === 'active' ? createVoterCardContent(action) : createArchivedVoterCardContent(action));
+                actionsContainer.appendChild(card);
+            });
+            attachCardEventListeners();
+        }
+        
+        function renderMemberSummary() {
+            if (currentMember === 'Admin' || !governanceActions.length) return;
+            const summaryContent = document.getElementById('memberSummaryContent');
+            const activeActions = governanceActions.filter(a => a.status !== 'archived');
+            const totalVotes = Object.keys(memberVotes).length;
+            const voteCounts = { yes: 0, no: 0, abstain: 0 };
+            Object.values(memberVotes).forEach(vote => { if (voteCounts[vote] !== undefined) voteCounts[vote]++; });
+            let pendingVotes = 0;
+            activeActions.forEach(action => { const hasVoted = memberVotes.hasOwnProperty(action.id); const deadlinePassed = formatTimeRemaining(action.deadline).isPast; if (!hasVoted && !deadlinePassed) { pendingVotes++; } });
+            summaryContent.innerHTML = `<div class="p-4 bg-gray-50 rounded-lg"><p class="text-3xl font-bold text-blue-600">${pendingVotes}</p><p class="text-sm font-medium text-gray-600">Pending Votes</p></div><div class="p-4 bg-gray-50 rounded-lg"><p class="text-3xl font-bold text-gray-700">${totalVotes}</p><p class="text-sm font-medium text-gray-600">Total Votes Cast</p></div><div class="p-4 bg-gray-50 rounded-lg grid grid-cols-3 gap-1 text-center"><div><p class="text-xl font-bold text-green-600">${voteCounts.yes}</p><p class="text-xs font-medium text-gray-500">Yes</p></div><div><p class="text-xl font-bold text-red-600">${voteCounts.no}</p><p class="text-xs font-medium text-gray-500">No</p></div><div><p class="text-xl font-bold text-yellow-600">${voteCounts.abstain}</p><p class="text-xs font-medium text-gray-500">Abstain</p></div></div>`;
+        }
+        function createVoterCardContent(action) { const currentVote = memberVotes[action.id]; const btnClass = (vote) => `vote-button btn ${currentVote === vote ? 'selected' : ''}`; const { text, color, isPast } = formatTimeRemaining(action.deadline); const areButtonsDisabled = isPast ? 'disabled' : ''; return `<div class="flex flex-col md:flex-row justify-between items-start"><div><h3 class="text-xl font-bold text-gray-800">${action.title}</h3><a href="${action.govToolLink || '#'}" target="_blank" class="text-sm text-blue-600 hover:underline font-mono">ID: ${action.id}</a></div><div class="text-right mt-4 md:mt-0"><div class="vote-button-group flex space-x-2" data-action-id="${action.id}"><button class="${btnClass('yes')} btn-success" ${areButtonsDisabled}>Yes</button><button class="${btnClass('no')} btn-danger" ${areButtonsDisabled}>No</button><button class="${btnClass('abstain')} btn-secondary" ${areButtonsDisabled}>Abstain</button></div><p class="deadline-timer text-sm font-medium mt-2 h-5 ${color}">${text}</p></div></div>`; }
+        function createArchivedVoterCardContent(action) { const vote = memberVotes[action.id] || 'Did not vote'; const voteColorMap = { yes: 'text-green-600 bg-green-100', no: 'text-red-600 bg-red-100', abstain: 'text-gray-600 bg-gray-100', 'Did not vote': 'text-gray-500 bg-gray-100' }; return `<div class="flex flex-col md:flex-row justify-between items-center"><div><h3 class="text-xl font-bold text-gray-600">${action.title}</h3><p class="text-sm text-gray-500 font-mono">ID: ${action.id}</p></div><div class="mt-4 md:mt-0"><p class="text-sm text-gray-500">Your Vote:</p><p class="font-bold text-lg px-4 py-1 rounded-full ${voteColorMap[vote]}">${vote.charAt(0).toUpperCase() + vote.slice(1)}</p></div></div>`; }
+        function createAdminCardContent(action) { const { text, color } = formatTimeRemaining(action.deadline); return `<div class="flex flex-col md:flex-row justify-between items-center"><div><h3 class="text-xl font-bold text-gray-800">${action.title}</h3><p class="text-sm text-gray-500 font-mono">ID: ${action.id}</p><p class="deadline-timer text-sm font-medium mt-1 ${color}">${text}</p></div><button class="view-results-btn btn btn-outline-purple mt-4 md:mt-0" data-action-id="${action.id}">View Results</button></div>`; }
+
+        // --- Event Handling ---
+        function attachCardEventListeners() { document.querySelectorAll('.vote-button-group .vote-button').forEach(btn => btn.addEventListener('click', handleVoteClick)); document.querySelectorAll('.view-results-btn').forEach(btn => btn.addEventListener('click', handleViewResultsClick)); }
+        async function handleVoteClick(e) { const button = e.currentTarget; if (button.disabled) return; const actionId = button.parentElement.dataset.actionId; const vote = button.textContent.toLowerCase(); try { await setDoc(doc(db, 'members_data', currentMember, 'individual_votes', actionId), { vote }); const popup = document.getElementById('voteConfirmationPopup'); popup.classList.remove('opacity-0'); setTimeout(() => popup.classList.add('opacity-0'), 2000); } catch (err) { console.error("Error saving vote:", err); alert("Could not save your vote. Please try again."); } }
+        async function handleViewResultsClick(e) { const actionId = e.currentTarget.dataset.actionId; const action = governanceActions.find(a => a.id === actionId); if (!action) return; const resultsModal = document.getElementById('resultsModal'); document.getElementById('resultsModalTitle').textContent = `Results for: ${action.title}`; const modalContent = document.getElementById('resultsModalContent'); modalContent.innerHTML = `<div class="text-center p-4 animate-pulse">Loading results...</div>`; resultsModal.classList.remove('hidden'); const votes = {}; let yes=0, no=0, abstain=0; const votePromises = regularMembersList.map(async member => { const voteDoc = await getDoc(doc(db, 'members_data', member, 'individual_votes', actionId)); votes[member] = voteDoc.exists() ? voteDoc.data().vote : 'unvoted'; }); await Promise.all(votePromises); let votersHTML = ''; const voteColorMap = { yes: 'bg-green-100 text-green-800', no: 'bg-red-100 text-red-800', abstain: 'bg-yellow-100 text-yellow-800', unvoted: 'bg-gray-100 text-gray-500' }; regularMembersList.forEach(member => { const vote = votes[member]; if (vote === 'yes') yes++; else if (vote === 'no') no++; else if (vote === 'abstain') abstain++; votersHTML += `<div class="p-3 rounded-lg flex justify-between items-center ${voteColorMap[vote]}"><span class="font-medium">${member}</span><span class="font-bold uppercase text-xs">${vote}</span></div>`; }); const totalVotes = yes + no + abstain; const quorumMet = totalVotes >= QUORUM_REQUIRED; let councilVote = 'Abstain'; if (yes > no && yes > abstain) councilVote = 'Yes'; else if (no > yes && no > abstain) councilVote = 'No'; const { text: deadlineText, color: deadlineColor, isPast } = formatTimeRemaining(action.deadline); const deadlineHTML = action.deadline ? `<p class="text-center font-semibold ${deadlineColor}">${isPast ? deadlineText : `Ends: ${new Date(action.deadline).toLocaleString()}`}</p>` : '<p class="text-center text-gray-500">No deadline set</p>'; modalContent.innerHTML = `<div>${deadlineHTML}<h4 class="text-lg font-semibold text-gray-700 mb-3 mt-4">Overall Results</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center"><div class="p-3 bg-gray-50 rounded-lg"><p class="text-2xl font-bold text-green-600">${yes}</p><p class="text-sm text-gray-600">Yes</p></div><div class="p-3 bg-gray-50 rounded-lg"><p class="text-2xl font-bold text-red-600">${no}</p><p class="text-sm text-gray-600">No</p></div><div class="p-3 bg-gray-50 rounded-lg"><p class="text-2xl font-bold text-yellow-600">${abstain}</p><p class="text-sm text-gray-600">Abstain</p></div><div class="p-3 bg-gray-50 rounded-lg"><p class="text-2xl font-bold ${quorumMet ? 'text-green-600' : 'text-red-600'}">${quorumMet ? 'Met' : 'Not Met'}</p><p class="text-sm text-gray-600">Quorum (${totalVotes}/${regularMembersList.length})</p></div><div class="p-3 bg-gray-50 rounded-lg col-span-full"><p class="text-2xl font-bold text-blue-600">${councilVote}</p><p class="text-sm text-gray-600">Final Council Vote</p></div></div></div><div><h4 class="text-lg font-semibold text-gray-700 mt-6 mb-3">Individual Votes</h4><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${votersHTML}</div></div>`; }
+
+        // --- Admin Functions ---
+        function getEpochData() { const epochData = []; const baseEpoch = 532; let currentDate = new Date(Date.UTC(2025, 0, 4, 21, 45, 0)); const endYear = new Date().getUTCFullYear() + 5; const endDate = new Date(Date.UTC(endYear, 0, 1)); let currentEpoch = baseEpoch; while (currentDate < endDate) { epochData.push({ date: new Date(currentDate), epochNumber: currentEpoch }); currentDate.setUTCDate(currentDate.getUTCDate() + 5); currentEpoch++; } return epochData; }
+        function initializeDatePicker() { const epochData = getEpochData(); const epochMap = new Map(); epochData.forEach(item => { const dateStr = item.date.toISOString().slice(0, 10); epochMap.set(dateStr, item.epochNumber); }); flatpickr("#newActionDeadline", { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, minDate: "today", onDayCreate: function(dObj, dStr, fp, dayElem) { const dateStr = dayElem.dateObj.toISOString().slice(0, 10); if (epochMap.has(dateStr)) { dayElem.classList.add("epoch-boundary"); dayElem.title = `Epoch ${epochMap.get(dateStr)} Boundary`; } }, onChange: function(selectedDates, dateStr, instance) { if (selectedDates.length === 0) return; const selectedDayStr = selectedDates[0].toISOString().slice(0, 10); if (epochMap.has(selectedDayStr)) { const newDate = new Date(selectedDates[0]); newDate.setUTCHours(21, 45, 0, 0); instance.setDate(newDate, false); } } }); }
+        function populateAdminSelects() { const archiveSelect = document.getElementById('archiveActionSelect'); archiveSelect.innerHTML = '<option value="">-- Select Action to Archive --</option>'; governanceActions.filter(a => a.status !== 'archived').forEach(action => { archiveSelect.innerHTML += `<option value="${action.id}">${action.title}</option>`; }); const deleteSelect = document.getElementById('deleteActionSelect'); deleteSelect.innerHTML = '<option value="">-- Select Action to Delete --</option>'; governanceActions.forEach(action => { deleteSelect.innerHTML += `<option value="${action.id}">${action.title} (${action.status || 'active'})</option>`; }); }
+        async function renderFullSummary() { if (!summaryReportContent) return; document.getElementById('toggleArchivedSummaryBtn').textContent = showArchivedInSummary ? 'Hide Archived' : 'Show Archived'; const actionsToSummarize = showArchivedInSummary ? governanceActions : governanceActions.filter(action => action.status !== 'archived'); let tableHTML = `<table class="w-full text-left border-collapse min-w-[600px]"><thead><tr class="bg-gray-100"><th class="p-3 font-semibold text-sm text-gray-700 border-b">Action</th><th class="p-3 font-semibold text-sm text-green-600 border-b text-center">Yes</th><th class="p-3 font-semibold text-sm text-red-600 border-b text-center">No</th><th class="p-3 font-semibold text-sm text-yellow-600 border-b text-center">Abstain</th><th class="p-3 font-semibold text-sm text-gray-700 border-b text-center">Quorum</th><th class="p-3 font-semibold text-sm text-blue-700 border-b text-center">Outcome</th></tr></thead><tbody>`; if (actionsToSummarize.length === 0) { tableHTML += `<tr><td colspan="6" class="text-center p-4 text-gray-500">No actions to summarize.</td></tr>`; } else { for (const action of actionsToSummarize) { let yes = 0, no = 0, abstain = 0; const votePromises = regularMembersList.map(async member => { const voteDoc = await getDoc(doc(db, 'members_data', member, 'individual_votes', action.id)); const vote = voteDoc.exists() ? voteDoc.data().vote : 'unvoted'; if (vote === 'yes') yes++; else if (vote === 'no') no++; else if (vote === 'abstain') abstain++; }); await Promise.all(votePromises); const totalVotes = yes + no + abstain; const quorumMet = totalVotes >= QUORUM_REQUIRED; let councilVote = 'Abstain'; if (yes > no && yes > abstain) councilVote = 'Yes'; else if (no > yes && no > abstain) councilVote = 'No'; const { isPast } = formatTimeRemaining(action.deadline); let statusText = action.status || 'active'; if (isPast && statusText === 'active') statusText = 'closed'; tableHTML += `<tr class="hover:bg-gray-50"><td class="p-3 border-b border-gray-200">${action.title} <span class="text-xs font-semibold uppercase ${action.status === 'archived' ? 'text-yellow-600' : (isPast ? 'text-red-600' : 'text-green-600')}">(${statusText})</span></td><td class="p-3 border-b border-gray-200 text-center font-medium">${yes}</td><td class="p-3 border-b border-gray-200 text-center font-medium">${no}</td><td class="p-3 border-b border-gray-200 text-center font-medium">${abstain}</td><td class="p-3 border-b border-gray-200 text-center font-bold ${quorumMet ? 'text-green-600' : 'text-red-600'}">${quorumMet ? 'Met' : 'Not Met'}</td><td class="p-3 border-b border-gray-200 text-center font-bold text-blue-600">${councilVote}</td></tr>`; } } tableHTML += `</tbody></table>`; summaryReportContent.innerHTML = tableHTML; }
+        
+        function setupAdminAccessControls() {
+            const container = document.getElementById('userAccessControls');
+            container.innerHTML = ''; // Clear previous controls
+            if (unsubscribeLoginCodes) unsubscribeLoginCodes();
+
+            members.forEach(member => {
+                const div = document.createElement('div');
+                div.className = 'p-3 bg-gray-50 rounded-lg';
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-semibold text-gray-700">${member}</span>
+                        <span id="code-status-${member}" class="text-sm font-medium text-gray-500">Checking...</span>
+                    </div>
+                    <div class="mt-2 flex items-center gap-2">
+                        <input type="text" id="code-input-${member}" class="w-full text-sm" placeholder="Enter new code...">
+                        <button class="set-code-btn btn btn-secondary btn-sm" data-member="${member}">Set/Reset</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            unsubscribeLoginCodes = onSnapshot(collection(db, 'login_codes'), snapshot => {
+                const memberCodes = {};
+                snapshot.forEach(doc => { memberCodes[doc.id] = doc.data(); });
+                
+                members.forEach(member => {
+                    const statusEl = document.getElementById(`code-status-${member}`);
+                    if (memberCodes[member] && memberCodes[member].code) {
+                        statusEl.textContent = 'Code is Set';
+                        statusEl.className = 'text-sm font-medium text-green-600';
+                    } else {
+                        statusEl.textContent = 'No Code Set';
+                        statusEl.className = 'text-sm font-medium text-red-600';
+                    }
+                });
+            });
+
+            document.querySelectorAll('.set-code-btn').forEach(btn => {
+                btn.addEventListener('click', handleSetCode);
+            });
+        }
+
+        async function handleSetCode(e) {
+            const memberName = e.currentTarget.dataset.member;
+            const input = document.getElementById(`code-input-${memberName}`);
+            const newCode = input.value.trim();
+
+            if (!newCode) {
+                alert('Please enter a code.');
+                return;
+            }
+
+            e.currentTarget.disabled = true;
+            e.currentTarget.textContent = 'Setting...';
+
+            try {
+                await setDoc(doc(db, "login_codes", memberName), { code: newCode });
+                input.value = '';
+                const popup = document.getElementById('voteConfirmationPopup');
+                popup.textContent = `Code for ${memberName} updated!`;
+                popup.classList.remove('opacity-0');
+                setTimeout(() => { popup.classList.add('opacity-0'); popup.textContent = 'Vote Registered!'; }, 2500);
+            } catch (err) {
+                console.error("Error setting code:", err);
+                alert(`Could not set code for ${memberName}.`);
+            } finally {
+                e.currentTarget.disabled = false;
+                e.currentTarget.textContent = 'Set/Reset';
+            }
+        }
+
+        async function handleSetOwnCode() {
+            const newCodeInput = document.getElementById('newCodeInput');
+            const confirmCodeInput = document.getElementById('confirmCodeInput');
+            const errorEl = document.getElementById('changeCodeError');
+            
+            const newCode = newCodeInput.value;
+            const confirmCode = confirmCodeInput.value;
+            
+            errorEl.textContent = '';
+
+            if (!newCode || !confirmCode) {
+                errorEl.textContent = 'Please fill out both fields.';
+                return;
+            }
+            if (newCode !== confirmCode) {
+                errorEl.textContent = 'Codes do not match.';
+                return;
+            }
+
+            document.getElementById('saveChangeCodeBtn').disabled = true;
+
+            try {
+                await setDoc(doc(db, "login_codes", currentMember), { code: newCode });
+                
+                const popup = document.getElementById('voteConfirmationPopup');
+                popup.textContent = 'Code changed successfully!';
+                popup.classList.remove('opacity-0');
+                setTimeout(() => { popup.classList.add('opacity-0'); popup.textContent = 'Vote Registered!'; }, 2500);
+
+                changeCodeModal.classList.add('hidden');
+                newCodeInput.value = '';
+                confirmCodeInput.value = '';
+
+            } catch (err) {
+                console.error("Error changing own code:", err);
+                errorEl.textContent = "Could not change code. Check permissions.";
+            } finally {
+                document.getElementById('saveChangeCodeBtn').disabled = false;
+            }
+        }
+
+
+        // --- Initial Load ---
+        window.addEventListener('load', () => {
+            const memberSelect = document.getElementById('memberSelect');
+            memberSelect.innerHTML = '<option value="">-- Select Member --</option>';
+            members.forEach(m => { memberSelect.innerHTML += `<option value="${m}">${m}</option>`});
+
+            onAuthStateChanged(auth, async (user) => {
+                if (isLoggingIn) return; // Don't do anything if a login is in progress
+
+                if (user) {
+                    const sessionRef = doc(db, 'sessions', user.uid);
+                    const sessionDoc = await getDoc(sessionRef).catch(err => {
+                        console.error("Failed to get session doc:", err);
+                        return null;
+                    });
+
+                    if (sessionDoc && sessionDoc.exists()) {
+                        const memberName = sessionDoc.data().memberName;
+                        initializeAppForMember(memberName);
+                    } else {
+                        await handleLogout();
+                    }
+                } else {
+                    appContainer.classList.add('hidden');
+                    loginModal.classList.remove('hidden');
+                }
+            });
+
+            // Login Listeners
+            logoutBtn.addEventListener('click', handleLogout);
+            document.getElementById('loginBtn').addEventListener('click', async () => {
+                const selectedMember = document.getElementById('memberSelect').value;
+                const code = document.getElementById('memberCode').value.trim();
+                const loginError = document.getElementById('loginError');
+                loginError.textContent = '';
+
+                if (!selectedMember || !code) {
+                    loginError.textContent = 'Please select a member and enter a code.';
+                    return;
+                }
+                
+                isLoggingIn = true; // Set the flag
+                document.getElementById('loginBtn').disabled = true;
+                loginError.textContent = 'Verifying...';
+
+                try {
+                    let currentUser = auth.currentUser;
+                    if (!currentUser) {
+                        const userCredential = await signInAnonymously(auth);
+                        currentUser = userCredential.user;
+                    }
+                    
+                    const codeRef = doc(db, 'login_codes', selectedMember);
+                    const codeDoc = await getDoc(codeRef);
+
+                    if (codeDoc.exists() && codeDoc.data().code === code) {
+                        const sessionRef = doc(db, 'sessions', currentUser.uid);
+                        await setDoc(sessionRef, { memberName: selectedMember });
+                        initializeAppForMember(selectedMember);
+                    } else {
+                        loginError.textContent = 'Invalid member or code.';
+                    }
+                } catch (error) {
+                    console.error("Login failed:", error);
+                    loginError.textContent = 'Login failed. Check console, Firestore rules, and browser extensions.';
+                } finally {
+                    isLoggingIn = false; // Reset the flag
+                    document.getElementById('loginBtn').disabled = false;
+                    if(loginError.textContent === 'Verifying...') loginError.textContent = '';
+                }
+            });
+
+            // Change Code Modal Listeners
+            changeCodeBtn.addEventListener('click', () => changeCodeModal.classList.remove('hidden'));
+            document.getElementById('cancelChangeCodeBtn').addEventListener('click', () => changeCodeModal.classList.add('hidden'));
+            document.getElementById('saveChangeCodeBtn').addEventListener('click', handleSetOwnCode);
+
+            // View Toggle Listener
+            document.getElementById('viewToggle').addEventListener('click', e => { if(e.target.matches('.view-toggle-btn')) { currentView = e.target.dataset.view; document.querySelectorAll('.view-toggle-btn').forEach(btn => btn.classList.remove('active')); e.target.classList.add('active'); renderActions(); } });
+            
+            // Admin Listeners
+            document.getElementById('adminAccordionHeader').addEventListener('click', () => { document.getElementById('adminAccordionContent').classList.toggle('open'); adminAccordionHeader.classList.toggle('open'); });
+            document.getElementById('closeResultsModalBtn').addEventListener('click', () => document.getElementById('resultsModal').classList.add('hidden'));
+            document.getElementById('toggleArchivedSummaryBtn').addEventListener('click', () => { showArchivedInSummary = !showArchivedInSummary; renderFullSummary(); });
+            const showConfirm = (title, message, onConfirm) => { document.getElementById('confirmModalTitle').textContent = title; document.getElementById('confirmMessage').textContent = message; document.getElementById('confirmationModal').classList.remove('hidden'); const confirmBtn = document.getElementById('confirmActionBtn'); const newConfirmBtn = confirmBtn.cloneNode(true); confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn); newConfirmBtn.onclick = () => { document.getElementById('confirmationModal').classList.add('hidden'); onConfirm(); }; };
+            document.getElementById('cancelConfirmBtn').onclick = () => document.getElementById('confirmationModal').classList.add('hidden');
+            document.getElementById('addActionButton').addEventListener('click', async () => { const id = document.getElementById('newActionIdInput').value.trim(); const title = document.getElementById('newActionTitle').value.trim(); const link = document.getElementById('newGovToolLink').value.trim(); const deadlineValue = document.getElementById('newActionDeadline').value; const deadline = deadlineValue ? new Date(deadlineValue).toISOString() : null; const statusEl = document.getElementById('actionManagementStatus'); if (!id || !title) return statusEl.textContent = "ID and Title are required."; statusEl.textContent = "Adding..."; try { await setDoc(doc(db, 'governance_actions', id), { id, title, govToolLink: link, status: 'active', deadline }); statusEl.textContent = `Action added.`; ['newActionIdInput', 'newActionTitle', 'newGovToolLink'].forEach(elId => document.getElementById(elId).value = ''); flatpickr("#newActionDeadline").clear(); } catch(e) { statusEl.textContent = `Error: ${e.message}`; } });
+            document.getElementById('archiveActionButton').addEventListener('click', () => { const id = document.getElementById('archiveActionSelect').value; if (!id) return; showConfirm("Confirm Archive", `Are you sure you want to archive action "${id}"?`, async () => { const statusEl = document.getElementById('actionManagementStatus'); statusEl.textContent = 'Archiving...'; await updateDoc(doc(db, 'governance_actions', id), { status: 'archived' }); statusEl.textContent = `Action ${id} archived.`; }); });
+            document.getElementById('deleteActionButton').addEventListener('click', () => { const id = document.getElementById('deleteActionSelect').value; if (!id) return; const actionTitle = governanceActions.find(a => a.id === id)?.title || id; showConfirm("Confirm Deletion", `This is permanent. Are you sure you want to delete "${actionTitle}" and all its votes?`, async () => { const statusEl = document.getElementById('actionManagementStatus'); statusEl.textContent = `Deleting ${id}...`; try { await deleteDoc(doc(db, 'governance_actions', id)); const deleteVotePromises = regularMembersList.map(member => deleteDoc(doc(db, 'members_data', member, 'individual_votes', id))); await Promise.all(deleteVotePromises); statusEl.textContent = `Action ${id} deleted.`; } catch(e) { statusEl.textContent = 'Error during deletion.'; console.error(e); } }); });
+            document.getElementById('resetAllVotesBtn').addEventListener('click', () => { showConfirm("Confirm Reset", "Are you sure you want to delete ALL votes for ALL members? This cannot be undone.", async () => { const statusEl = document.getElementById('globalStatus'); statusEl.textContent = "Resetting votes..."; const promises = []; for(const member of regularMembersList) { const snapshot = await getDocs(collection(db, 'members_data', member, 'individual_votes')); snapshot.forEach(d => promises.push(deleteDoc(d.ref))); } await Promise.all(promises); statusEl.textContent = "All votes have been reset."; }); });
+        });
+    </script>
+</body>
+</html>
