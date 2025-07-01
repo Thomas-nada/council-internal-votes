@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intersect Constitutional Council Voting (with Summaries)</title>
+    <title>Intersect Constitutional Council Voting</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter Font -->
@@ -86,7 +86,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, query, getDocs, deleteDoc, orderBy, getDoc, updateDoc, where, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, getDocs, deleteDoc, orderBy, getDoc, updateDoc, where, writeBatch, serverTimestamp, addDoc, limit, startAfter } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -102,7 +102,7 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        window.firebase = { db, auth, onAuthStateChanged, signOut, signInAnonymously, doc, setDoc, onSnapshot, collection, query, getDocs, deleteDoc, orderBy, getDoc, updateDoc, where, writeBatch, serverTimestamp };
+        window.firebase = { db, auth, onAuthStateChanged, signOut, signInAnonymously, doc, setDoc, onSnapshot, collection, query, getDocs, deleteDoc, orderBy, getDoc, updateDoc, where, writeBatch, serverTimestamp, addDoc, limit, startAfter };
     </script>
     <!-- Flatpickr Date Picker JS -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -211,7 +211,7 @@
             <div id="adminAccordionContent" class="accordion-content border-t border-gray-200">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <!-- Add/Remove Actions --><div class="space-y-4"><h3 class="font-bold text-lg text-gray-700">Manage Actions</h3><input type="text" id="newActionIdInput" class="w-full" placeholder="Gov Action ID"/><input type="text" id="newActionTitle" class="w-full" placeholder="New Action Title"/><input type="url" id="newGovToolLink" class="w-full" placeholder="Gov Tool Link"/><div><label for="newActionDeadline" class="font-medium text-sm text-gray-600">Voting Deadline</label><input type="text" id="newActionDeadline" class="w-full" placeholder="Select deadline date & time"/></div><button id="addActionButton" class="w-full btn btn-primary">Add New Action</button><div class="pt-4 mt-4 border-t"><label for="manageActionSelect" class="font-medium text-sm text-gray-600">Select Action for Archiving/Deletion</label><select id="manageActionSelect" class="w-full mt-1"></select><div class="flex gap-4 mt-2"><button id="archiveActionButton" class="w-full btn btn-warning" disabled>Archive Selected</button><button id="deleteActionButton" class="w-full btn btn-danger">Delete Selected</button></div></div><p id="actionManagementStatus" class="text-sm text-gray-600 h-4"></p></div>
-                    <!-- User Access & Global Controls --><div class="space-y-6"><h3 class="font-bold text-lg text-gray-700">User Access</h3><div id="userAccessControls"></div><h3 class="font-bold text-lg text-gray-700 pt-4 border-t">Global Controls</h3><button id="resetAllVotesBtn" class="w-full btn btn-danger">Reset All Votes</button><p id="globalStatus" class="text-sm text-gray-600 text-center h-4"></p></div>
+                    <!-- User Access & Global Controls --><div class="space-y-6"><h3 class="font-bold text-lg text-gray-700">User Access</h3><div id="userAccessControls"></div><div class="pt-4 mt-4 border-t"><div class="flex justify-between items-center"><h3 class="font-bold text-lg text-gray-700">Recent Activity</h3><button id="downloadAuditLogBtn" class="btn btn-secondary btn-sm"><i class="fas fa-download mr-2"></i>Download CSV</button></div><div id="recentActivityFeed" class="mt-2 space-y-2 text-sm max-h-64 overflow-y-auto border rounded-lg p-2 bg-gray-50"></div><div id="activityPagination" class="flex justify-between mt-2"></div></div><h3 class="font-bold text-lg text-gray-700 pt-4 border-t">Global Controls</h3><div class="space-y-2"><button id="resetAllVotesBtn" class="w-full btn btn-danger">Reset All Votes</button><button id="resetAuditLogBtn" class="w-full btn btn-danger">Reset Audit Log</button></div><p id="globalStatus" class="text-sm text-gray-600 text-center h-4"></p></div>
                 </div>
             </div>
         </div>
@@ -223,7 +223,7 @@
     </div>
 
     <script type="module">
-        const { db, auth, onAuthStateChanged, signOut, signInAnonymously, doc, setDoc, onSnapshot, collection, query, getDocs, deleteDoc, orderBy, getDoc, updateDoc, where, writeBatch, serverTimestamp } = window.firebase;
+        const { db, auth, onAuthStateChanged, signOut, signInAnonymously, doc, setDoc, onSnapshot, collection, query, getDocs, deleteDoc, orderBy, getDoc, updateDoc, where, writeBatch, serverTimestamp, addDoc, limit, startAfter } = window.firebase;
 
         // Configuration
         const regularMembersList = ["Hosky", "Ian", "Jose", "Juan", "Mauro", "Mercy", "Ubio"];
@@ -240,7 +240,10 @@
         let unsubscribeVotes = null;
         let unsubscribeLoginCodes = null;
         let unsubscribeAllVotes = null;
+        let unsubscribeActivity = null;
         let currentView = 'active';
+        let activityLogPageSnapshots = [null]; // For pagination
+        let currentActivityLogPage = 0;
 
         // DOM Elements
         const loginModal = document.getElementById('loginModal');
@@ -268,6 +271,7 @@
                 changeCodeBtn.classList.add('hidden');
                 initializeDatePicker("#newActionDeadline");
                 setupAdminAccessControls();
+                setupAdminActivityListener();
             } else {
                 adminPanel.classList.add('hidden');
                 memberSummaryPanel.classList.remove('hidden');
@@ -284,6 +288,7 @@
             if (unsubscribeVotes) unsubscribeVotes();
             if (unsubscribeLoginCodes) unsubscribeLoginCodes();
             if (unsubscribeAllVotes) unsubscribeAllVotes();
+            if (unsubscribeActivity) unsubscribeActivity();
 
             const user = auth.currentUser;
             if (user) {
@@ -495,17 +500,19 @@
             return `
                 <div class="flex flex-col">
                     <div class="flex flex-col md:flex-row justify-between items-start">
-                        <div>
+                        <div class="flex-grow">
                             <h3 class="text-xl font-bold text-gray-800">${action.title}</h3>
                             <a href="${action.govToolLink || '#'}" target="_blank" class="text-sm text-blue-600 hover:underline font-mono">ID: ${action.id}</a>
                         </div>
-                        <div class="text-right mt-4 md:mt-0">
-                            <div class="vote-button-group flex space-x-2" data-action-id="${action.id}">
-                                <button class="${btnClass('yes')} btn-success" ${areButtonsDisabled ? 'disabled' : ''}>Yes</button>
-                                <button class="${btnClass('no')} btn-danger" ${areButtonsDisabled ? 'disabled' : ''}>No</button>
-                                <button class="${btnClass('abstain')} btn-secondary" ${areButtonsDisabled ? 'disabled' : ''}>Abstain</button>
+                        <div class="flex items-center gap-4 mt-4 md:mt-0">
+                            <div class="text-right">
+                                <div class="vote-button-group flex space-x-2" data-action-id="${action.id}">
+                                    <button class="${btnClass('yes')} btn-success" ${areButtonsDisabled ? 'disabled' : ''}>Yes</button>
+                                    <button class="${btnClass('no')} btn-danger" ${areButtonsDisabled ? 'disabled' : ''}>No</button>
+                                    <button class="${btnClass('abstain')} btn-secondary" ${areButtonsDisabled ? 'disabled' : ''}>Abstain</button>
+                                </div>
+                                <p class="deadline-timer text-sm font-medium mt-2 h-5 ${color}">${text}</p>
                             </div>
-                            <p class="deadline-timer text-sm font-medium mt-2 h-5 ${color}">${text}</p>
                         </div>
                     </div>
                     ${createSummaryHTML(summary)}
@@ -546,13 +553,15 @@
             return `
                 <div class="flex flex-col">
                     <div class="flex flex-col md:flex-row justify-between items-center">
-                        <div>
+                         <div class="flex-grow">
                             <h3 class="text-xl font-bold text-gray-600">${action.title}</h3>
                             <p class="text-sm text-gray-500 font-mono">ID: ${action.id}</p>
                         </div>
-                        <div class="mt-4 md:mt-0">
-                            <p class="text-sm text-gray-500">Your Vote:</p>
-                            <p class="font-bold text-lg px-4 py-1 rounded-full ${voteColorMap[vote]}">${vote.charAt(0).toUpperCase() + vote.slice(1)}</p>
+                        <div class="flex items-center gap-4 mt-4 md:mt-0">
+                            <div class="mt-4 md:mt-0">
+                                <p class="text-sm text-gray-500">Your Vote:</p>
+                                <p class="font-bold text-lg px-4 py-1 rounded-full ${voteColorMap[vote]}">${vote.charAt(0).toUpperCase() + vote.slice(1)}</p>
+                            </div>
                         </div>
                     </div>
                     ${createSummaryHTML(summary)}
@@ -574,7 +583,24 @@
             });
         }
 
-        async function handleVoteClick(e) { const button = e.currentTarget; if (button.disabled) return; const actionId = button.parentElement.dataset.actionId; const vote = button.textContent.toLowerCase(); try { await setDoc(doc(db, 'members_data', currentMember, 'individual_votes', actionId), { vote }); const popup = document.getElementById('voteConfirmationPopup'); popup.classList.remove('opacity-0'); setTimeout(() => popup.classList.add('opacity-0'), 2000); } catch (err) { console.error("Error saving vote:", err); alert("Could not save your vote. Please try again."); } }
+        async function handleVoteClick(e) {
+            const button = e.currentTarget;
+            if (button.disabled) return;
+            const actionId = button.parentElement.dataset.actionId;
+            const vote = button.textContent.toLowerCase();
+            try {
+                await setDoc(doc(db, 'members_data', currentMember, 'individual_votes', actionId), { vote });
+                const action = governanceActions.find(a => a.id === actionId);
+                await logAuditEvent(actionId, 'VOTE_CAST', { actionTitle: action.title, vote: vote });
+                const popup = document.getElementById('voteConfirmationPopup');
+                popup.textContent = 'Vote Registered!';
+                popup.classList.remove('opacity-0');
+                setTimeout(() => popup.classList.add('opacity-0'), 2000);
+            } catch (err) {
+                console.error("Error saving vote:", err);
+                alert("Could not save your vote. Please try again.");
+            }
+        }
         
         async function handleViewResultsClick(e) {
             const actionId = e.currentTarget.dataset.id;
@@ -635,6 +661,7 @@
             try {
                 const actionRef = doc(db, 'governance_actions', actionId);
                 await updateDoc(actionRef, updatedData);
+                await logAuditEvent(actionId, 'ACTION_EDITED', { newTitle });
                 const popup = document.getElementById('voteConfirmationPopup');
                 popup.textContent = 'Action updated successfully!';
                 popup.classList.remove('opacity-0');
@@ -648,6 +675,37 @@
             }
         }
 
+        async function downloadAuditLogAsCSV() {
+            const logQuery = query(collection(db, "audit_log"), orderBy("timestamp", "desc"));
+            const logSnapshot = await getDocs(logQuery);
+
+            if (logSnapshot.empty) {
+                alert("No audit log data to download.");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Timestamp,Actor,Event Type,Action ID,Details\r\n";
+
+            const logs = logSnapshot.docs.map(d => d.data());
+            
+            logs.forEach(log => {
+                const time = log.timestamp ? `"${log.timestamp.toDate().toLocaleString()}"` : 'N/A';
+                const actor = `"${log.actor}"`;
+                const type = `"${log.type}"`;
+                const actionId = `"${log.actionId}"`;
+                const details = `"${Object.entries(log.details).map(([k,v]) => `${k}: ${v}`).join('; ')}"`;
+                csvContent += [time, actor, type, actionId, details].join(",") + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `full-audit-log.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         // --- Admin Functions ---
         function getEpochData() { const epochData = []; const baseEpoch = 532; let currentDate = new Date(Date.UTC(2025, 0, 4, 21, 45, 0)); const endYear = new Date().getUTCFullYear() + 5; const endDate = new Date(Date.UTC(endYear, 0, 1)); let currentEpoch = baseEpoch; while (currentDate < endDate) { epochData.push({ date: new Date(currentDate), epochNumber: currentEpoch }); currentDate.setUTCDate(currentDate.getUTCDate() + 5); currentEpoch++; } return epochData; }
@@ -800,6 +858,97 @@
             }
         }
 
+        async function logAuditEvent(actionId, type, details) {
+            try {
+                await addDoc(collection(db, "audit_log"), {
+                    actionId,
+                    type,
+                    details,
+                    timestamp: serverTimestamp(),
+                    actor: currentMember
+                });
+            } catch (err) {
+                console.error("Error writing to audit log:", err);
+            }
+        }
+
+        function setupAdminActivityListener() {
+            const feedContainer = document.getElementById('recentActivityFeed');
+            const paginationContainer = document.getElementById('activityPagination');
+            
+            const fetchAndRenderPage = async (pageIndex) => {
+                const lastVisible = activityLogPageSnapshots[pageIndex - 1] || null;
+                let q;
+                if (lastVisible) {
+                    q = query(collection(db, "audit_log"), orderBy("timestamp", "desc"), startAfter(lastVisible), limit(25));
+                } else {
+                    q = query(collection(db, "audit_log"), orderBy("timestamp", "desc"), limit(25));
+                }
+
+                const snapshot = await getDocs(q);
+                
+                if (snapshot.empty && pageIndex > 0) {
+                     // We've gone past the last page
+                    currentActivityLogPage--;
+                    return;
+                }
+                
+                activityLogPageSnapshots[pageIndex] = snapshot.docs[snapshot.docs.length - 1];
+
+                if (snapshot.empty) {
+                    feedContainer.innerHTML = `<p class="text-center text-gray-500">No recent activity.</p>`;
+                    paginationContainer.innerHTML = '';
+                    return;
+                }
+
+                feedContainer.innerHTML = snapshot.docs.map(d => {
+                    const log = d.data();
+                    const time = log.timestamp ? log.timestamp.toDate().toLocaleTimeString() : 'N/A';
+                    let description = '';
+                    switch(log.type) {
+                        case 'ACTION_CREATED':
+                            description = `<strong>${log.actor}</strong> created action: <em>${log.details.title}</em>`;
+                            break;
+                        case 'ACTION_EDITED':
+                            description = `<strong>${log.actor}</strong> edited action: <em>${log.details.newTitle}</em>`;
+                            break;
+                        case 'ACTION_ARCHIVED':
+                            description = `<strong>${log.actor}</strong> archived action: <em>${log.details.actionTitle}</em>`;
+                            break;
+                        case 'VOTE_CAST':
+                            if (log.details.vote) {
+                                description = `<strong>${log.actor}</strong> voted <strong>${log.details.vote.toUpperCase()}</strong> on action: <em>${log.details.actionTitle}</em>`;
+                            } else {
+                                description = `<strong>${log.actor}</strong> voted on action: <em>${log.details.actionTitle}</em>`;
+                            }
+                            break;
+                        default:
+                            description = `Unknown event: ${log.type}`;
+                    }
+                    return `<div class="p-2 border-b border-gray-100"><p class="font-mono text-xs text-gray-500">${time}</p><p>${description}</p></div>`;
+                }).join('');
+
+                // Update pagination controls
+                paginationContainer.innerHTML = `
+                    <button id="prevActivityPage" class="btn btn-secondary btn-sm" ${pageIndex === 0 ? 'disabled' : ''}>Previous</button>
+                    <span class="p-2 text-sm font-medium">Page ${pageIndex + 1}</span>
+                    <button id="nextActivityPage" class="btn btn-secondary btn-sm" ${snapshot.docs.length < 25 ? 'disabled' : ''}>Next</button>
+                `;
+
+                document.getElementById('prevActivityPage')?.addEventListener('click', () => {
+                    if (currentActivityLogPage > 0) {
+                        currentActivityLogPage--;
+                        fetchAndRenderPage(currentActivityLogPage);
+                    }
+                });
+                document.getElementById('nextActivityPage')?.addEventListener('click', () => {
+                    currentActivityLogPage++;
+                    fetchAndRenderPage(currentActivityLogPage);
+                });
+            };
+
+            fetchAndRenderPage(0);
+        }
 
         // --- Initial Load ---
         window.addEventListener('load', () => {
@@ -902,7 +1051,26 @@
             
             document.getElementById('adminAccordionHeader').addEventListener('click', () => { document.getElementById('adminAccordionContent').classList.toggle('open'); adminAccordionHeader.classList.toggle('open'); });
             document.getElementById('closeResultsModalBtn').addEventListener('click', () => document.getElementById('resultsModal').classList.add('hidden'));
-            document.getElementById('addActionButton').addEventListener('click', async () => { const id = document.getElementById('newActionIdInput').value.trim(); const title = document.getElementById('newActionTitle').value.trim(); const link = document.getElementById('newGovToolLink').value.trim(); const deadlineValue = document.getElementById('newActionDeadline').value; const deadline = deadlineValue ? new Date(deadlineValue).toISOString() : null; const statusEl = document.getElementById('actionManagementStatus'); if (!id || !title) return statusEl.textContent = "ID and Title are required."; statusEl.textContent = "Adding..."; try { await setDoc(doc(db, 'governance_actions', id), { id, title, govToolLink: link, status: 'active', deadline }); statusEl.textContent = `Action added.`; ['newActionIdInput', 'newActionTitle', 'newGovToolLink'].forEach(elId => document.getElementById(elId).value = ''); flatpickr("#newActionDeadline").clear(); } catch(e) { statusEl.textContent = `Error: ${e.message}`; } });
+            document.getElementById('downloadAuditLogBtn').addEventListener('click', downloadAuditLogAsCSV);
+            document.getElementById('addActionButton').addEventListener('click', async () => {
+                const id = document.getElementById('newActionIdInput').value.trim();
+                const title = document.getElementById('newActionTitle').value.trim();
+                const link = document.getElementById('newGovToolLink').value.trim();
+                const deadlineValue = document.getElementById('newActionDeadline').value;
+                const deadline = deadlineValue ? new Date(deadlineValue).toISOString() : null;
+                const statusEl = document.getElementById('actionManagementStatus');
+                if (!id || !title) return statusEl.textContent = "ID and Title are required.";
+                statusEl.textContent = "Adding...";
+                try {
+                    await setDoc(doc(db, 'governance_actions', id), { id, title, govToolLink: link, status: 'active', deadline });
+                    await logAuditEvent(id, 'ACTION_CREATED', { title });
+                    statusEl.textContent = `Action added.`;
+                    ['newActionIdInput', 'newActionTitle', 'newGovToolLink'].forEach(elId => document.getElementById(elId).value = '');
+                    flatpickr("#newActionDeadline").clear();
+                } catch(e) {
+                    statusEl.textContent = `Error: ${e.message}`;
+                }
+            });
             
             document.getElementById('manageActionSelect').addEventListener('change', (e) => {
                 const selectedId = e.target.value;
@@ -923,9 +1091,11 @@
                     setTimeout(() => statusEl.textContent = '', 3000);
                     return;
                 }
+                const action = governanceActions.find(a => a.id === id);
                 showConfirm("Confirm Archive", `Are you sure you want to archive this action?`, async () => {
                     statusEl.textContent = 'Archiving...';
                     await updateDoc(doc(db, 'governance_actions', id), { status: 'archived' });
+                    await logAuditEvent(id, 'ACTION_ARCHIVED', { actionTitle: action.title });
                     statusEl.textContent = `Action archived.`;
                 });
             });
@@ -942,17 +1112,13 @@
                 showConfirm("Confirm Deletion", `This is permanent. Are you sure you want to delete "${actionTitle}" and all its votes?`, async () => {
                     statusEl.textContent = `Deleting ${id}...`;
                     try {
-                        // Delete the main action document first.
                         await deleteDoc(doc(db, 'governance_actions', id));
-
-                        // Attempt to delete all associated votes, but don't let failures stop the process.
                         const deleteVotePromises = regularMembersList.map(member =>
                             deleteDoc(doc(db, 'members_data', member, 'individual_votes', id)).catch(err => {
                                 console.warn(`Non-critical error deleting vote for ${member} on action ${id}:`, err);
                             })
                         );
                         await Promise.all(deleteVotePromises);
-
                         statusEl.textContent = `Action ${id} and associated votes deleted.`;
                     } catch(e) {
                         statusEl.textContent = 'Error during deletion.';
@@ -962,6 +1128,17 @@
             });
 
             document.getElementById('resetAllVotesBtn').addEventListener('click', () => { showConfirm("Confirm Reset", "Are you sure you want to delete ALL votes for ALL members? This cannot be undone.", async () => { const statusEl = document.getElementById('globalStatus'); statusEl.textContent = "Resetting votes..."; const promises = []; for(const member of regularMembersList) { const snapshot = await getDocs(collection(db, 'members_data', member, 'individual_votes')); snapshot.forEach(d => promises.push(deleteDoc(d.ref))); } await Promise.all(promises); statusEl.textContent = "All votes have been reset."; }); });
+            document.getElementById('resetAuditLogBtn').addEventListener('click', () => {
+                showConfirm("Confirm Audit Log Reset", "This is permanent. Are you sure you want to delete the ENTIRE audit log?", async () => {
+                    const statusEl = document.getElementById('globalStatus');
+                    statusEl.textContent = "Resetting audit log...";
+                    const snapshot = await getDocs(collection(db, 'audit_log'));
+                    const promises = [];
+                    snapshot.forEach(d => promises.push(deleteDoc(d.ref)));
+                    await Promise.all(promises);
+                    statusEl.textContent = "Audit log has been reset.";
+                });
+            });
         });
     </script>
 </body>
