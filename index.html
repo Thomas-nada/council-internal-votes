@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intersect Constitutional Council Voting</title>
+    <title>Intersect Constitutional Council Voting (with Summaries)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter Font -->
@@ -381,27 +381,36 @@
             return { text: text.trim(), color: textColor, isPast: false, bgColor };
         }
 
+        async function autoArchiveAction(action) {
+            if (!action || action.status === 'archived') return;
+            console.log(`Auto-archiving action: ${action.id}`);
+            await updateDoc(doc(db, 'governance_actions', action.id), { status: 'archived' });
+            await logAuditEvent(action.id, 'ACTION_AUTO_ARCHIVED', { actionTitle: action.title });
+        }
+
         function startGlobalTimer() {
             setInterval(() => {
                 governanceActions.forEach(action => {
-                    if (!action.deadline) return;
                     const card = document.querySelector(`.action-card[data-id="${action.id}"]`);
                     if (!card) return;
 
-                    const timerEl = card.querySelector('.deadline-timer');
                     const { text, color, isPast, bgColor } = formatTimeRemaining(action.deadline);
                     
-                    if (timerEl) {
-                        timerEl.textContent = text;
-                        timerEl.className = `deadline-timer text-sm font-medium ${color}`;
+                    if (card.querySelector('.deadline-timer')) {
+                        card.querySelector('.deadline-timer').textContent = text;
+                        card.querySelector('.deadline-timer').className = `deadline-timer text-sm font-medium ${color}`;
                     }
                     
                     card.classList.remove('bg-white', 'bg-green-50', 'bg-yellow-50', 'bg-red-50', 'bg-gray-200');
                     card.classList.add(bgColor);
 
-                    if (isPast && currentMember !== 'Admin') {
-                        card.querySelectorAll('.vote-button').forEach(btn => btn.disabled = true);
-                        card.querySelector('.vote-button-group')?.classList.add('opacity-50');
+                    if (isPast) {
+                        if (currentMember !== 'Admin') {
+                            card.querySelectorAll('.vote-button').forEach(btn => btn.disabled = true);
+                            card.querySelector('.vote-button-group')?.classList.add('opacity-50');
+                        } else if (action.status !== 'archived') {
+                            autoArchiveAction(action);
+                        }
                     }
                 });
             }, 60000);
@@ -915,11 +924,14 @@
                         case 'ACTION_ARCHIVED':
                             description = `<strong>${log.actor}</strong> archived action: <em>${log.details.actionTitle}</em>`;
                             break;
+                        case 'ACTION_AUTO_ARCHIVED':
+                            description = `Action <em>${log.details.actionTitle}</em> was automatically archived.`;
+                            break;
                         case 'VOTE_CAST':
-                            if (log.details.vote) {
+                            if (log.details && log.details.vote) {
                                 description = `<strong>${log.actor}</strong> voted <strong>${log.details.vote.toUpperCase()}</strong> on action: <em>${log.details.actionTitle}</em>`;
                             } else {
-                                description = `<strong>${log.actor}</strong> voted on action: <em>${log.details.actionTitle}</em>`;
+                                description = `<strong>${log.actor}</strong> voted on action: <em>${log.details.actionTitle || ''}</em>`;
                             }
                             break;
                         default:
@@ -1019,6 +1031,13 @@
                     isLoggingIn = false; // Reset the flag
                     document.getElementById('loginBtn').disabled = false;
                     if(loginError.textContent === 'Verifying...') loginError.textContent = '';
+                }
+            });
+            
+            document.getElementById('memberCode').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('loginBtn').click();
                 }
             });
 
