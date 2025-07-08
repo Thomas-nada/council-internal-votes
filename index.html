@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intersect Constitutional Council Voting (with Summaries)</title>
+    <title>Intersect Constitutional Council Voting</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter Font -->
@@ -70,8 +70,8 @@
         input:focus, select:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3); }
         .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out; padding: 0 1.5rem; }
         .accordion-content.open { max-height: 1200px; /* Adjust as needed */ padding: 1.5rem; }
-        .accordion-header i { transition: transform 0.3s ease-in-out; }
-        .accordion-header.open i { transform: rotate(180deg); }
+        .checklist-accordion-header i { transition: transform 0.3s ease-in-out; }
+        .checklist-accordion-header.open i { transform: rotate(180deg); }
 
         .modal-overlay.hidden { opacity: 0; pointer-events: none; }
         .modal-overlay.hidden .modal-content { transform: scale(0.95); }
@@ -81,6 +81,11 @@
         .view-toggle-btn.active { background-color: white; color: #4f46e5; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .flatpickr-day.epoch-boundary { background: #fee2e2 !important; color: #991b1b !important; border: 1px solid #fca5a5 !important; font-weight: 700; }
         .flatpickr-day.epoch-boundary:hover { background: #fecaca !important; color: #7f1d1d !important; }
+        
+        /* Checklist styles */
+        .checklist-item { display: flex; align-items: center; padding: 0.5rem 0; }
+        .checklist-item input[type="checkbox"] { width: 1.25rem; height: 1.25rem; margin-right: 0.75rem; cursor: pointer; }
+        .checklist-item label { user-select: none; cursor: pointer; }
     </style>
     <!-- Firebase SDKs -->
     <script type="module">
@@ -149,24 +154,18 @@
     </div>
 
     <div id="editActionModal" class="modal-overlay hidden">
-        <div class="modal-content">
+        <div class="modal-content !max-w-lg">
             <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Edit Governance Action</h3>
             <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Action ID (Read-only)</label>
-                    <input type="text" id="editActionId" class="w-full mt-1 bg-gray-100" readonly>
-                </div>
-                <div>
-                    <label for="editActionTitle" class="block text-sm font-medium text-gray-700">Action Title</label>
-                    <input type="text" id="editActionTitle" class="w-full mt-1">
-                </div>
-                <div>
-                    <label for="editGovToolLink" class="block text-sm font-medium text-gray-700">Gov Tool Link</label>
-                    <input type="url" id="editGovToolLink" class="w-full mt-1">
-                </div>
-                <div>
-                    <label for="editActionDeadline" class="block text-sm font-medium text-gray-700">Voting Deadline</label>
-                    <input type="text" id="editActionDeadline" class="w-full mt-1">
+                <div><label class="block text-sm font-medium text-gray-700">Action ID (Read-only)</label><input type="text" id="editActionId" class="w-full mt-1 bg-gray-100" readonly></div>
+                <div><label for="editActionTitle" class="block text-sm font-medium text-gray-700">Action Title</label><input type="text" id="editActionTitle" class="w-full mt-1"></div>
+                <div><label for="editGovToolLink" class="block text-sm font-medium text-gray-700">Gov Tool Link</label><input type="url" id="editGovToolLink" class="w-full mt-1"></div>
+                <div><label for="editProposalLink" class="block text-sm font-medium text-gray-700">Link to Proposal</label><input type="url" id="editProposalLink" class="w-full mt-1"></div>
+                <div><label for="editWorkingDocLink" class="block text-sm font-medium text-gray-700">Link to Working Document</label><input type="url" id="editWorkingDocLink" class="w-full mt-1"></div>
+                <div><label for="editActionDeadline" class="block text-sm font-medium text-gray-700">Voting Deadline</label><input type="text" id="editActionDeadline" class="w-full mt-1"></div>
+                <div class="flex items-center pt-2">
+                    <input type="checkbox" id="editIncludeChecklist" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                    <label for="editIncludeChecklist" class="ml-2 block text-sm text-gray-900">Include Pre-Vote Checklist</label>
                 </div>
             </div>
             <p id="editActionError" class="text-red-500 text-sm mt-4 h-4"></p>
@@ -210,7 +209,7 @@
             <div id="adminAccordionHeader" class="p-6 cursor-pointer flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800">Admin Tools</h2><i class="fas fa-chevron-down text-gray-500"></i></div>
             <div id="adminAccordionContent" class="accordion-content border-t border-gray-200">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Add/Remove Actions --><div class="space-y-4"><h3 class="font-bold text-lg text-gray-700">Manage Actions</h3><input type="text" id="newActionIdInput" class="w-full" placeholder="Gov Action ID"/><input type="text" id="newActionTitle" class="w-full" placeholder="New Action Title"/><input type="url" id="newGovToolLink" class="w-full" placeholder="Gov Tool Link"/><div><label for="newActionDeadline" class="font-medium text-sm text-gray-600">Voting Deadline</label><input type="text" id="newActionDeadline" class="w-full" placeholder="Select deadline date & time"/></div><button id="addActionButton" class="w-full btn btn-primary">Add New Action</button><div class="pt-4 mt-4 border-t"><label for="manageActionSelect" class="font-medium text-sm text-gray-600">Select Action for Archiving/Deletion</label><select id="manageActionSelect" class="w-full mt-1"></select><div class="flex gap-4 mt-2"><button id="archiveActionButton" class="w-full btn btn-warning" disabled>Archive Selected</button><button id="deleteActionButton" class="w-full btn btn-danger">Delete Selected</button></div></div><p id="actionManagementStatus" class="text-sm text-gray-600 h-4"></p></div>
+                    <!-- Add/Remove Actions --><div class="space-y-4"><h3 class="font-bold text-lg text-gray-700">Manage Actions</h3><input type="text" id="newActionIdInput" class="w-full" placeholder="Gov Action ID"/><input type="text" id="newActionTitle" class="w-full" placeholder="New Action Title"/><input type="url" id="newGovToolLink" class="w-full" placeholder="Gov Tool Link"/><input type="url" id="newProposalLink" class="w-full" placeholder="Link to Proposal"/><input type="url" id="newWorkingDocLink" class="w-full" placeholder="Link to Working Document"/><div><label for="newActionDeadline" class="font-medium text-sm text-gray-600">Voting Deadline</label><input type="text" id="newActionDeadline" class="w-full" placeholder="Select deadline date & time"/></div><div class="flex items-center"><input type="checkbox" id="newIncludeChecklist" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"><label for="newIncludeChecklist" class="ml-2 block text-sm text-gray-900">Include Pre-Vote Checklist</label></div><button id="addActionButton" class="w-full btn btn-primary mt-2">Add New Action</button><div class="pt-4 mt-4 border-t"><label for="manageActionSelect" class="font-medium text-sm text-gray-600">Select Action for Archiving/Deletion</label><select id="manageActionSelect" class="w-full mt-1"></select><div class="flex gap-4 mt-2"><button id="archiveActionButton" class="w-full btn btn-warning" disabled>Archive Selected</button><button id="deleteActionButton" class="w-full btn btn-danger">Delete Selected</button></div></div><p id="actionManagementStatus" class="text-sm text-gray-600 h-4"></p></div>
                     <!-- User Access & Global Controls --><div class="space-y-6"><h3 class="font-bold text-lg text-gray-700">User Access</h3><div id="userAccessControls"></div><div class="pt-4 mt-4 border-t"><div class="flex justify-between items-center"><h3 class="font-bold text-lg text-gray-700">Recent Activity</h3><button id="downloadAuditLogBtn" class="btn btn-secondary btn-sm"><i class="fas fa-download mr-2"></i>Download CSV</button></div><div id="recentActivityFeed" class="mt-2 space-y-2 text-sm max-h-64 overflow-y-auto border rounded-lg p-2 bg-gray-50"></div><div id="activityPagination" class="flex justify-between mt-2"></div></div><h3 class="font-bold text-lg text-gray-700 pt-4 border-t">Global Controls</h3><div class="space-y-2"><button id="resetAllVotesBtn" class="w-full btn btn-danger">Reset All Votes</button><button id="resetAuditLogBtn" class="w-full btn btn-danger">Reset Audit Log</button></div><p id="globalStatus" class="text-sm text-gray-600 text-center h-4"></p></div>
                 </div>
             </div>
@@ -228,7 +227,15 @@
         // Configuration
         const regularMembersList = ["Hosky", "Ian", "Jose", "Juan", "Mauro", "Mercy", "Ubio"];
         const members = [...regularMembersList, "Admin"];
-        const QUORUM_REQUIRED = 5;
+        const QUORUM_REQUIRED = 4; // Corrected from 5 to 4
+        const CHECKLIST_ITEMS = {
+            walletAddress: "Wallet Address",
+            budgetAmount: "Budget Amount",
+            ipfs: "IPFS",
+            abstract: "Abstract",
+            copyPasta: "Copy/Pasta",
+            autoAbstain: "Auto-Abstain"
+        };
         
         // State variables
         let currentMember = null;
@@ -244,6 +251,7 @@
         let currentView = 'active';
         let activityLogPageSnapshots = [null]; // For pagination
         let currentActivityLogPage = 0;
+        let openChecklists = new Set(); // To preserve checklist accordion state
 
         // DOM Elements
         const loginModal = document.getElementById('loginModal');
@@ -299,6 +307,7 @@
             await signOut(auth);
 
             currentMember = null;
+            openChecklists.clear(); // Clear UI state on logout
 
             appContainer.classList.add('hidden');
             loginModal.classList.remove('hidden');
@@ -327,7 +336,7 @@
             const votesRef = collection(db, 'members_data', currentMember, 'individual_votes');
             unsubscribeVotes = onSnapshot(votesRef, snapshot => {
                 memberVotes = {};
-                snapshot.forEach(d => { memberVotes[d.id] = d.data().vote; });
+                snapshot.forEach(d => { memberVotes[d.id] = d.data(); });
                 renderActions();
                 renderMemberSummary();
             });
@@ -452,6 +461,20 @@
                 }
                 actionsContainer.appendChild(card);
             });
+
+            // Re-apply the open state for checklists after rendering
+            openChecklists.forEach(actionId => {
+                const card = document.querySelector(`.action-card[data-id="${actionId}"]`);
+                if (card) {
+                    const header = card.querySelector('.checklist-accordion-header');
+                    const content = card.querySelector('.checklist-accordion-content');
+                    if (header && content) {
+                        header.classList.add('open');
+                        content.classList.add('open');
+                    }
+                }
+            });
+
             attachCardEventListeners();
         }
         
@@ -461,7 +484,7 @@
             const activeActions = governanceActions.filter(a => a.status !== 'archived');
             const totalVotes = Object.keys(memberVotes).length;
             const voteCounts = { yes: 0, no: 0, abstain: 0 };
-            Object.values(memberVotes).forEach(vote => { if (voteCounts[vote] !== undefined) voteCounts[vote]++; });
+            Object.values(memberVotes).forEach(voteData => { const vote = voteData.vote; if (voteCounts[vote] !== undefined) voteCounts[vote]++; });
             let pendingVotes = 0;
             activeActions.forEach(action => { const hasVoted = memberVotes.hasOwnProperty(action.id); const deadlinePassed = formatTimeRemaining(action.deadline).isPast; if (!hasVoted && !deadlinePassed) { pendingVotes++; } });
             summaryContent.innerHTML = `<div class="p-4 bg-gray-50 rounded-lg"><p class="text-3xl font-bold text-blue-600">${pendingVotes}</p><p class="text-sm font-medium text-gray-600">Pending Votes</p></div><div class="p-4 bg-gray-50 rounded-lg"><p class="text-3xl font-bold text-gray-700">${totalVotes}</p><p class="text-sm font-medium text-gray-600">Total Votes Cast</p></div><div class="p-4 bg-gray-50 rounded-lg grid grid-cols-3 gap-1 text-center"><div><p class="text-xl font-bold text-green-600">${voteCounts.yes}</p><p class="text-xs font-medium text-gray-500">Yes</p></div><div><p class="text-xl font-bold text-red-600">${voteCounts.no}</p><p class="text-xs font-medium text-gray-500">No</p></div><div><p class="text-xl font-bold text-yellow-600">${voteCounts.abstain}</p><p class="text-xs font-medium text-gray-500">Abstain</p></div></div>`;
@@ -470,19 +493,33 @@
         function getActionVoteSummary(actionId) {
             const votes = allMemberVotes[actionId] || {};
             let yes = 0, no = 0, abstain = 0;
+            
             Object.values(votes).forEach(vote => {
                 if (vote === 'yes') yes++;
                 else if (vote === 'no') no++;
                 else if (vote === 'abstain') abstain++;
             });
-            const total = yes + no + abstain;
-            const quorumMet = total >= QUORUM_REQUIRED;
+            
+            const totalVotesCast = yes + no + abstain;
+            const quorumMet = totalVotesCast >= QUORUM_REQUIRED;
+            
             let councilVote = 'Pending';
-            if (yes > no && yes > abstain) councilVote = 'Yes';
-            else if (no > yes && no > abstain) councilVote = 'No';
-            else if (total > 0) councilVote = 'Abstain';
 
-            return { yes, no, abstain, total, quorumMet, councilVote };
+            // Only determine an outcome if there are votes other than abstentions
+            if (yes > 0 || no > 0) {
+                if (yes > no) {
+                    councilVote = 'Yes';
+                } else if (no > yes) {
+                    councilVote = 'No';
+                } else { // yes === no
+                    councilVote = 'Abstain';
+                }
+            } else if (totalVotesCast > 0) {
+                // This case handles when there are only abstain votes
+                councilVote = 'Abstain';
+            }
+
+            return { yes, no, abstain, total: totalVotesCast, quorumMet, councilVote };
         }
 
         function createSummaryHTML(summary) {
@@ -498,20 +535,45 @@
                 </div>
             `;
         }
-
+        
         function createVoterCardContent(action) {
             const summary = getActionVoteSummary(action.id);
-            const currentVote = memberVotes[action.id];
+            const currentVoteData = memberVotes[action.id];
+            const currentVote = currentVoteData?.vote;
             const btnClass = (vote) => `vote-button btn ${currentVote === vote ? 'selected' : ''}`;
             const { text, color, isPast } = formatTimeRemaining(action.deadline);
             const areButtonsDisabled = isPast;
+            
+            const checklistContainerHTML = action.includeChecklist ? `
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <div class="checklist-accordion-header cursor-pointer flex justify-between items-center text-gray-700 hover:text-blue-600">
+                        <h4 class="font-semibold">Pre-Vote Checklist</h4>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="checklist-accordion-content accordion-content">
+                        ${Object.entries(CHECKLIST_ITEMS).map(([key, label]) => {
+                            const isChecked = currentVoteData?.checklist?.[key] ?? false;
+                            return `
+                                <div class="checklist-item">
+                                    <input type="checkbox" id="checklist-${action.id}-${key}" data-action-id="${action.id}" data-item-key="${key}" ${isChecked ? 'checked' : ''} ${areButtonsDisabled ? 'disabled' : ''}>
+                                    <label for="checklist-${action.id}-${key}">${label}</label>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            ` : '';
 
             return `
                 <div class="flex flex-col">
                     <div class="flex flex-col md:flex-row justify-between items-start">
                         <div class="flex-grow">
                             <h3 class="text-xl font-bold text-gray-800">${action.title}</h3>
-                            <a href="${action.govToolLink || '#'}" target="_blank" class="text-sm text-blue-600 hover:underline font-mono">ID: ${action.id}</a>
+                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm mt-1">
+                                <a href="${action.govToolLink || '#'}" target="_blank" class="text-blue-600 hover:underline font-mono">ID: ${action.id}</a>
+                                ${action.proposalLink ? `<a href="${action.proposalLink}" target="_blank" class="text-blue-600 hover:underline"><i class="fas fa-file-alt mr-1"></i>Proposal</a>` : ''}
+                                ${action.workingDocLink ? `<a href="${action.workingDocLink}" target="_blank" class="text-blue-600 hover:underline"><i class="fas fa-edit mr-1"></i>Working Doc</a>` : ''}
+                            </div>
                         </div>
                         <div class="flex items-center gap-4 mt-4 md:mt-0">
                             <div class="text-right">
@@ -524,6 +586,8 @@
                             </div>
                         </div>
                     </div>
+                    
+                    ${checklistContainerHTML}
                     ${createSummaryHTML(summary)}
                 </div>
             `;
@@ -557,7 +621,7 @@
         
         function createArchivedVoterCardContent(action) {
             const summary = getActionVoteSummary(action.id);
-            const vote = memberVotes[action.id] || 'Did not vote';
+            const vote = memberVotes[action.id]?.vote || 'Did not vote';
             const voteColorMap = { yes: 'text-green-600 bg-green-100', no: 'text-red-600 bg-red-100', abstain: 'text-gray-600 bg-gray-100', 'Did not vote': 'text-gray-500 bg-gray-100' };
             return `
                 <div class="flex flex-col">
@@ -590,6 +654,24 @@
             document.querySelectorAll('.edit-action-btn').forEach(btn => {
                 btn.addEventListener('click', handleEditActionClick);
             });
+            document.querySelectorAll('.checklist-accordion-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    const card = header.closest('.action-card');
+                    if (!card) return;
+                    const actionId = card.dataset.id;
+                    const content = header.nextElementSibling;
+                    const isOpen = content.classList.toggle('open');
+                    header.classList.toggle('open', isOpen);
+                    if (isOpen) {
+                        openChecklists.add(actionId);
+                    } else {
+                        openChecklists.delete(actionId);
+                    }
+                });
+            });
+            document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', handleChecklistChange);
+            });
         }
 
         async function handleVoteClick(e) {
@@ -597,17 +679,57 @@
             if (button.disabled) return;
             const actionId = button.parentElement.dataset.actionId;
             const vote = button.textContent.toLowerCase();
+            const voteRef = doc(db, 'members_data', currentMember, 'individual_votes', actionId);
+            
             try {
-                await setDoc(doc(db, 'members_data', currentMember, 'individual_votes', actionId), { vote });
+                // Use updateDoc to only change the vote, preserving the checklist.
+                // If the doc doesn't exist, setDoc will be called in the catch block.
+                await updateDoc(voteRef, { vote: vote });
+            } catch (err) {
+                if (err.code === 'not-found') {
+                    // Document doesn't exist, create it with the vote and an empty checklist
+                    await setDoc(voteRef, { vote: vote, checklist: {} });
+                } else {
+                    console.error("Error saving vote:", err);
+                    alert("Could not save your vote. Please try again.");
+                    return;
+                }
+            }
+            
+            try {
                 const action = governanceActions.find(a => a.id === actionId);
                 await logAuditEvent(actionId, 'VOTE_CAST', { actionTitle: action.title, vote: vote });
                 const popup = document.getElementById('voteConfirmationPopup');
                 popup.textContent = 'Vote Registered!';
                 popup.classList.remove('opacity-0');
                 setTimeout(() => popup.classList.add('opacity-0'), 2000);
+            } catch (logErr) {
+                console.error("Error logging vote event:", logErr);
+            }
+        }
+        
+        async function handleChecklistChange(e) {
+            const checkbox = e.currentTarget;
+            if (checkbox.disabled) return;
+            const actionId = checkbox.dataset.actionId;
+            const itemKey = checkbox.dataset.itemKey;
+            const isChecked = checkbox.checked;
+            const voteRef = doc(db, 'members_data', currentMember, 'individual_votes', actionId);
+
+            try {
+                // Use updateDoc with dot notation to update a nested field.
+                await updateDoc(voteRef, { [`checklist.${itemKey}`]: isChecked });
             } catch (err) {
-                console.error("Error saving vote:", err);
-                alert("Could not save your vote. Please try again.");
+                 if (err.code === 'not-found') {
+                    // Document doesn't exist, create it with the checklist item and no vote
+                    const initialChecklist = { [itemKey]: isChecked };
+                    await setDoc(voteRef, { checklist: initialChecklist });
+                } else {
+                    console.error("Error updating checklist:", err);
+                    alert("Could not save your checklist change. Please try again.");
+                    // Revert checkbox state on error
+                    checkbox.checked = !isChecked;
+                }
             }
         }
         
@@ -644,6 +766,9 @@
             document.getElementById('editActionId').value = action.id;
             document.getElementById('editActionTitle').value = action.title;
             document.getElementById('editGovToolLink').value = action.govToolLink || '';
+            document.getElementById('editProposalLink').value = action.proposalLink || '';
+            document.getElementById('editWorkingDocLink').value = action.workingDocLink || '';
+            document.getElementById('editIncludeChecklist').checked = action.includeChecklist ?? false; // Set checkbox
             
             initializeDatePicker("#editActionDeadline", action.deadline);
 
@@ -654,6 +779,9 @@
             const actionId = document.getElementById('editActionId').value;
             const newTitle = document.getElementById('editActionTitle').value.trim();
             const newLink = document.getElementById('editGovToolLink').value.trim();
+            const newProposalLink = document.getElementById('editProposalLink').value.trim();
+            const newWorkingDocLink = document.getElementById('editWorkingDocLink').value.trim();
+            const includeChecklist = document.getElementById('editIncludeChecklist').checked;
             const newDeadlineValue = document.getElementById('editActionDeadline').value;
             const newDeadline = newDeadlineValue ? new Date(newDeadlineValue).toISOString() : null;
             const errorEl = document.getElementById('editActionError');
@@ -664,7 +792,7 @@
                 return;
             }
 
-            const updatedData = { title: newTitle, govToolLink: newLink, deadline: newDeadline };
+            const updatedData = { title: newTitle, govToolLink: newLink, proposalLink: newProposalLink, workingDocLink: newWorkingDocLink, deadline: newDeadline, includeChecklist: includeChecklist };
             document.getElementById('saveEditActionBtn').disabled = true;
 
             try {
@@ -1068,23 +1196,27 @@
             };
             document.getElementById('cancelConfirmBtn').onclick = () => document.getElementById('confirmationModal').classList.add('hidden');
             
-            document.getElementById('adminAccordionHeader').addEventListener('click', () => { document.getElementById('adminAccordionContent').classList.toggle('open'); adminAccordionHeader.classList.toggle('open'); });
+            document.getElementById('adminAccordionHeader').addEventListener('click', () => { document.getElementById('adminAccordionContent').classList.toggle('open'); document.getElementById('adminAccordionHeader').classList.toggle('open'); });
             document.getElementById('closeResultsModalBtn').addEventListener('click', () => document.getElementById('resultsModal').classList.add('hidden'));
             document.getElementById('downloadAuditLogBtn').addEventListener('click', downloadAuditLogAsCSV);
             document.getElementById('addActionButton').addEventListener('click', async () => {
                 const id = document.getElementById('newActionIdInput').value.trim();
                 const title = document.getElementById('newActionTitle').value.trim();
                 const link = document.getElementById('newGovToolLink').value.trim();
+                const proposalLink = document.getElementById('newProposalLink').value.trim();
+                const workingDocLink = document.getElementById('newWorkingDocLink').value.trim();
+                const includeChecklist = document.getElementById('newIncludeChecklist').checked;
                 const deadlineValue = document.getElementById('newActionDeadline').value;
                 const deadline = deadlineValue ? new Date(deadlineValue).toISOString() : null;
                 const statusEl = document.getElementById('actionManagementStatus');
                 if (!id || !title) return statusEl.textContent = "ID and Title are required.";
                 statusEl.textContent = "Adding...";
                 try {
-                    await setDoc(doc(db, 'governance_actions', id), { id, title, govToolLink: link, status: 'active', deadline });
+                    await setDoc(doc(db, 'governance_actions', id), { id, title, govToolLink: link, proposalLink, workingDocLink, status: 'active', deadline, includeChecklist });
                     await logAuditEvent(id, 'ACTION_CREATED', { title });
                     statusEl.textContent = `Action added.`;
-                    ['newActionIdInput', 'newActionTitle', 'newGovToolLink'].forEach(elId => document.getElementById(elId).value = '');
+                    ['newActionIdInput', 'newActionTitle', 'newGovToolLink', 'newProposalLink', 'newWorkingDocLink'].forEach(elId => document.getElementById(elId).value = '');
+                    document.getElementById('newIncludeChecklist').checked = false;
                     flatpickr("#newActionDeadline").clear();
                 } catch(e) {
                     statusEl.textContent = `Error: ${e.message}`;
