@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intersect Constitutional Council Voting</title>
+    <title>Intersect Constitutional Council Voting (with Summaries)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter Font -->
@@ -67,9 +67,18 @@
             border-radius: 0.75rem; padding: 0.75rem 1rem; border: 1px solid #d1d5db;
             box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
         }
+        select[multiple] { padding: 0.5rem; }
         input:focus, select:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3); }
+        input[type="file"] { padding-left: 0.25rem; }
+        input[type="file"]::file-selector-button {
+            margin-right: 1rem; padding: 0.5rem 1rem; border-radius: 0.5rem; border: 0;
+            font-weight: 600; background-color: #eef2ff; color: #4f46e5;
+            cursor: pointer; transition: background-color 0.2s;
+        }
+        input[type="file"]::file-selector-button:hover { background-color: #e0e7ff; }
+
         .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out; padding: 0 1.5rem; }
-        .accordion-content.open { max-height: 1200px; /* Adjust as needed */ padding: 1.5rem; }
+        .accordion-content.open { max-height: 1500px; /* Increased for new content */ padding: 1.5rem; }
         .checklist-accordion-header i { transition: transform 0.3s ease-in-out; }
         .checklist-accordion-header.open i { transform: rotate(180deg); }
 
@@ -209,14 +218,74 @@
             <div id="adminAccordionHeader" class="p-6 cursor-pointer flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800">Admin Tools</h2><i class="fas fa-chevron-down text-gray-500"></i></div>
             <div id="adminAccordionContent" class="accordion-content border-t border-gray-200">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Add/Remove Actions --><div class="space-y-4"><h3 class="font-bold text-lg text-gray-700">Manage Actions</h3><input type="text" id="newActionIdInput" class="w-full" placeholder="Gov Action ID"/><input type="text" id="newActionTitle" class="w-full" placeholder="New Action Title"/><input type="url" id="newGovToolLink" class="w-full" placeholder="Gov Tool Link"/><input type="url" id="newProposalLink" class="w-full" placeholder="Link to Proposal"/><input type="url" id="newWorkingDocLink" class="w-full" placeholder="Link to Working Document"/><div><label for="newActionDeadline" class="font-medium text-sm text-gray-600">Voting Deadline</label><input type="text" id="newActionDeadline" class="w-full" placeholder="Select deadline date & time"/></div><div class="flex items-center"><input type="checkbox" id="newIncludeChecklist" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"><label for="newIncludeChecklist" class="ml-2 block text-sm text-gray-900">Include Pre-Vote Checklist</label></div><button id="addActionButton" class="w-full btn btn-primary mt-2">Add New Action</button><div class="pt-4 mt-4 border-t"><label for="manageActionSelect" class="font-medium text-sm text-gray-600">Select Action for Archiving/Deletion</label><select id="manageActionSelect" class="w-full mt-1"></select><div class="flex gap-4 mt-2"><button id="archiveActionButton" class="w-full btn btn-warning" disabled>Archive Selected</button><button id="deleteActionButton" class="w-full btn btn-danger">Delete Selected</button></div></div><p id="actionManagementStatus" class="text-sm text-gray-600 h-4"></p></div>
-                    <!-- User Access & Global Controls --><div class="space-y-6"><h3 class="font-bold text-lg text-gray-700">User Access</h3><div id="userAccessControls"></div><div class="pt-4 mt-4 border-t"><div class="flex justify-between items-center"><h3 class="font-bold text-lg text-gray-700">Recent Activity</h3><button id="downloadAuditLogBtn" class="btn btn-secondary btn-sm"><i class="fas fa-download mr-2"></i>Download CSV</button></div><div id="recentActivityFeed" class="mt-2 space-y-2 text-sm max-h-64 overflow-y-auto border rounded-lg p-2 bg-gray-50"></div><div id="activityPagination" class="flex justify-between mt-2"></div></div><h3 class="font-bold text-lg text-gray-700 pt-4 border-t">Global Controls</h3><div class="space-y-2"><button id="resetAllVotesBtn" class="w-full btn btn-danger">Reset All Votes</button><button id="resetAuditLogBtn" class="w-full btn btn-danger">Reset Audit Log</button></div><p id="globalStatus" class="text-sm text-gray-600 text-center h-4"></p></div>
+                    <!-- Manage Actions Column -->
+                    <div class="space-y-4">
+                        <h3 class="font-bold text-lg text-gray-700">Manage Actions</h3>
+                        
+                        <!-- Bulk Import Section -->
+                        <div class="pt-4 border-t">
+                            <h4 class="font-semibold text-md text-gray-700 mb-2">Bulk Import Drafts from CSV</h4>
+                            <p class="text-xs text-gray-500 mb-2">Required headers: <code>id</code>, <code>title</code>. Optional: <code>govToolLink</code>, <code>proposalLink</code>, <code>workingDocLink</code>, <code>deadline</code> (YYYY-MM-DD HH:mm), <code>includeChecklist</code> (TRUE/FALSE).</p>
+                            <input type="file" id="csvFileInput" accept=".csv" class="w-full text-sm">
+                            <button id="importCsvBtn" class="w-full btn btn-secondary mt-2">Import from CSV</button>
+                            <p id="importStatus" class="text-sm text-gray-600 h-4 mt-2 text-center"></p>
+                        </div>
+
+                        <!-- Add Single Action Section -->
+                        <div class="pt-4 border-t">
+                             <h4 class="font-semibold text-md text-gray-700 mb-2">Add Single Action</h4>
+                            <input type="text" id="newActionIdInput" class="w-full" placeholder="Gov Action ID"/>
+                            <input type="text" id="newActionTitle" class="w-full mt-4" placeholder="New Action Title"/>
+                            <input type="url" id="newGovToolLink" class="w-full mt-4" placeholder="Gov Tool Link"/>
+                            <input type="url" id="newProposalLink" class="w-full mt-4" placeholder="Link to Proposal"/>
+                            <input type="url" id="newWorkingDocLink" class="w-full mt-4" placeholder="Link to Working Document"/>
+                            <div class="mt-4"><label for="newActionDeadline" class="font-medium text-sm text-gray-600">Voting Deadline</label><input type="text" id="newActionDeadline" class="w-full" placeholder="Select deadline date & time"/></div>
+                            <div class="flex items-center mt-4"><input type="checkbox" id="newIncludeChecklist" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"><label for="newIncludeChecklist" class="ml-2 block text-sm text-gray-900">Include Pre-Vote Checklist</label></div>
+                            <div class="flex items-center mt-2"><input type="checkbox" id="saveAsDraft" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"><label for="saveAsDraft" class="ml-2 block text-sm text-gray-900">Save as Draft</label></div>
+                            <button id="addActionButton" class="w-full btn btn-primary mt-2">Add New Action</button>
+                        </div>
+                        
+                        <!-- Archive/Delete Section -->
+                        <div class="pt-4 mt-4 border-t">
+                            <label for="manageActionSelect" class="font-medium text-sm text-gray-600">Select Action(s) for Archiving/Deletion (Hold Ctrl/Cmd to select multiple)</label>
+                            <select id="manageActionSelect" class="w-full mt-1 h-40" multiple></select>
+                            <div class="flex gap-4 mt-2">
+                                <button id="archiveActionButton" class="w-full btn btn-warning" disabled>Archive Selected</button>
+                                <button id="deleteActionButton" class="w-full btn btn-danger">Delete Selected</button>
+                            </div>
+                        </div>
+                        <p id="actionManagementStatus" class="text-sm text-gray-600 h-4"></p>
+                    </div>
+
+                    <!-- User Access & Global Controls Column -->
+                    <div class="space-y-6">
+                        <h3 class="font-bold text-lg text-gray-700">User Access</h3>
+                        <div id="userAccessControls"></div>
+                        <div class="pt-4 mt-4 border-t">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-bold text-lg text-gray-700">Recent Activity</h3>
+                                <button id="downloadAuditLogBtn" class="btn btn-secondary btn-sm"><i class="fas fa-download mr-2"></i>Download CSV</button>
+                            </div>
+                            <div id="recentActivityFeed" class="mt-2 space-y-2 text-sm max-h-64 overflow-y-auto border rounded-lg p-2 bg-gray-50"></div>
+                            <div id="activityPagination" class="flex justify-between mt-2"></div>
+                        </div>
+                        <h3 class="font-bold text-lg text-gray-700 pt-4 border-t">Global Controls</h3>
+                        <div class="space-y-2">
+                            <button id="resetAllVotesBtn" class="w-full btn btn-danger">Reset All Votes</button>
+                            <button id="resetAuditLogBtn" class="w-full btn btn-danger">Reset Audit Log</button>
+                        </div>
+                        <p id="globalStatus" class="text-sm text-gray-600 text-center h-4"></p>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- View Toggle -->
-        <div id="viewToggle" class="flex justify-center mb-6 bg-gray-200 p-1 rounded-full w-max mx-auto"><button data-view="active" class="view-toggle-btn active">Active</button><button data-view="archived" class="view-toggle-btn">Archive</button></div>
+        <div id="viewToggle" class="flex justify-center mb-6 bg-gray-200 p-1 rounded-full w-max mx-auto">
+            <button data-view="active" class="view-toggle-btn active">Active</button>
+            <button data-view="draft" class="view-toggle-btn hidden">Drafts</button>
+            <button data-view="archived" class="view-toggle-btn">Archive</button>
+        </div>
         <!-- Governance Actions List -->
         <main id="actionsContainer" class="space-y-6"></main>
     </div>
@@ -227,7 +296,7 @@
         // Configuration
         const regularMembersList = ["Hosky", "Ian", "Jose", "Juan", "Mauro", "Mercy", "Ubio"];
         const members = [...regularMembersList, "Admin"];
-        const QUORUM_REQUIRED = 4; // Corrected from 5 to 4
+        const QUORUM_REQUIRED = 4;
         const CHECKLIST_ITEMS = {
             walletAddress: "Wallet Address",
             budgetAmount: "Budget Amount",
@@ -264,6 +333,7 @@
         const changeCodeBtn = document.getElementById('changeCodeBtn');
         const changeCodeModal = document.getElementById('changeCodeModal');
         const editActionModal = document.getElementById('editActionModal');
+        const viewToggle = document.getElementById('viewToggle');
 
         // --- Core Logic ---
         function initializeAppForMember(member) {
@@ -277,6 +347,7 @@
                 adminPanel.classList.remove('hidden');
                 memberSummaryPanel.classList.add('hidden');
                 changeCodeBtn.classList.add('hidden');
+                viewToggle.querySelector('[data-view="draft"]').classList.remove('hidden');
                 initializeDatePicker("#newActionDeadline");
                 setupAdminAccessControls();
                 setupAdminActivityListener();
@@ -284,6 +355,7 @@
                 adminPanel.classList.add('hidden');
                 memberSummaryPanel.classList.remove('hidden');
                 changeCodeBtn.classList.remove('hidden');
+                viewToggle.querySelector('[data-view="draft"]').classList.add('hidden');
                 setupMemberVotesListener();
             }
             setupActionsListener();
@@ -391,7 +463,7 @@
         }
 
         async function autoArchiveAction(action) {
-            if (!action || action.status === 'archived') return;
+            if (!action || action.status !== 'active') return;
             console.log(`Auto-archiving action: ${action.id}`);
             await updateDoc(doc(db, 'governance_actions', action.id), { status: 'archived' });
             await logAuditEvent(action.id, 'ACTION_AUTO_ARCHIVED', { actionTitle: action.title });
@@ -400,6 +472,7 @@
         function startGlobalTimer() {
             setInterval(() => {
                 governanceActions.forEach(action => {
+                    if (action.status !== 'active') return; // Only process timers for active actions
                     const card = document.querySelector(`.action-card[data-id="${action.id}"]`);
                     if (!card) return;
 
@@ -417,7 +490,7 @@
                         if (currentMember !== 'Admin') {
                             card.querySelectorAll('.vote-button').forEach(btn => btn.disabled = true);
                             card.querySelector('.vote-button-group')?.classList.add('opacity-50');
-                        } else if (action.status !== 'archived') {
+                        } else {
                             autoArchiveAction(action);
                         }
                     }
@@ -429,8 +502,11 @@
         function renderActions() {
             actionsContainer.innerHTML = '';
             const actionsToRender = governanceActions.filter(action => {
-                const isArchived = action.status === 'archived';
-                return currentView === 'archived' ? isArchived : !isArchived;
+                const status = action.status || 'active'; // Default old actions to 'active'
+                if (currentMember !== 'Admin' && status === 'draft') {
+                    return false; // Non-admins never see drafts
+                }
+                return status === currentView;
             });
 
             if (currentView === 'active') {
@@ -449,7 +525,12 @@
 
             actionsToRender.forEach(action => {
                 const card = document.createElement('div');
-                const { bgColor } = formatTimeRemaining(action.deadline);
+                let bgColor = 'bg-white';
+                if (action.status === 'active') {
+                    bgColor = formatTimeRemaining(action.deadline).bgColor;
+                } else if (action.status === 'draft') {
+                    bgColor = 'bg-blue-50';
+                }
                 card.className = `action-card rounded-2xl shadow-md p-6 ${bgColor}`;
                 card.dataset.id = action.id;
                 
@@ -462,7 +543,6 @@
                 actionsContainer.appendChild(card);
             });
 
-            // Re-apply the open state for checklists after rendering
             openChecklists.forEach(actionId => {
                 const card = document.querySelector(`.action-card[data-id="${actionId}"]`);
                 if (card) {
@@ -481,7 +561,7 @@
         function renderMemberSummary() {
             if (currentMember === 'Admin' || !governanceActions.length) return;
             const summaryContent = document.getElementById('memberSummaryContent');
-            const activeActions = governanceActions.filter(a => a.status !== 'archived');
+            const activeActions = governanceActions.filter(a => (a.status || 'active') === 'active');
             const totalVotes = Object.keys(memberVotes).length;
             const voteCounts = { yes: 0, no: 0, abstain: 0 };
             Object.values(memberVotes).forEach(voteData => { const vote = voteData.vote; if (voteCounts[vote] !== undefined) voteCounts[vote]++; });
@@ -504,21 +584,13 @@
             const quorumMet = totalVotesCast >= QUORUM_REQUIRED;
             
             let councilVote = 'Pending';
-
-            // Only determine an outcome if there are votes other than abstentions
             if (yes > 0 || no > 0) {
-                if (yes > no) {
-                    councilVote = 'Yes';
-                } else if (no > yes) {
-                    councilVote = 'No';
-                } else { // yes === no
-                    councilVote = 'Abstain';
-                }
+                if (yes > no) councilVote = 'Yes';
+                else if (no > yes) councilVote = 'No';
+                else councilVote = 'Abstain';
             } else if (totalVotesCast > 0) {
-                // This case handles when there are only abstain votes
                 councilVote = 'Abstain';
             }
-
             return { yes, no, abstain, total: totalVotesCast, quorumMet, councilVote };
         }
 
@@ -586,7 +658,6 @@
                             </div>
                         </div>
                     </div>
-                    
                     ${checklistContainerHTML}
                     ${createSummaryHTML(summary)}
                 </div>
@@ -596,6 +667,29 @@
         function createAdminCardContent(action) {
             const summary = getActionVoteSummary(action.id);
             const { text, color } = formatTimeRemaining(action.deadline);
+            let actionButtonsHTML = '';
+
+            if (action.status === 'draft') {
+                actionButtonsHTML = `
+                    <button class="publish-action-btn btn btn-success btn-sm" data-action-id="${action.id}">
+                        <i class="fas fa-rocket mr-2"></i>Publish
+                    </button>
+                    <button class="edit-action-btn text-gray-500 hover:text-blue-600 transition-colors p-2 rounded-full" data-action-id="${action.id}" title="Edit Action">
+                        <i class="fas fa-pencil-alt fa-lg"></i>
+                    </button>
+                `;
+            } else { // Active or Archived
+                actionButtonsHTML = `
+                    <button class="edit-action-btn text-gray-500 hover:text-blue-600 transition-colors p-2 rounded-full" data-action-id="${action.id}" title="Edit Action">
+                        <i class="fas fa-pencil-alt fa-lg"></i>
+                    </button>
+                    <div class="view-results-cue flex items-center gap-2 text-purple-600 pl-4 border-l">
+                        <span class="text-sm font-medium">View Results</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                `;
+            }
+            
             return `
                 <div class="flex flex-col">
                     <div class="flex flex-col md:flex-row justify-between items-center">
@@ -605,16 +699,10 @@
                             <p class="deadline-timer text-sm font-medium mt-1 ${color}">${text}</p>
                         </div>
                         <div class="flex items-center gap-4 mt-4 md:mt-0">
-                            <button class="edit-action-btn text-gray-500 hover:text-blue-600 transition-colors p-2 rounded-full" data-action-id="${action.id}" title="Edit Action">
-                                <i class="fas fa-pencil-alt fa-lg"></i>
-                            </button>
-                            <div class="view-results-cue flex items-center gap-2 text-purple-600 pl-4 border-l">
-                                <span class="text-sm font-medium">View Results</span>
-                                <i class="fas fa-chevron-right"></i>
-                            </div>
+                            ${actionButtonsHTML}
                         </div>
                     </div>
-                    ${createSummaryHTML(summary)}
+                    ${action.status !== 'draft' ? createSummaryHTML(summary) : '<div class="mt-4 pt-4 border-t border-gray-300 text-center text-gray-500 font-style: italic">This is a draft. Publish to start voting.</div>'}
                 </div>
             `;
         }
@@ -647,13 +735,15 @@
             document.querySelectorAll('.vote-button-group .vote-button').forEach(btn => btn.addEventListener('click', handleVoteClick));
             document.querySelectorAll('.admin-action-card').forEach(card => {
                 card.addEventListener('click', (e) => {
-                    if (e.target.closest('.edit-action-btn')) return;
-                    handleViewResultsClick(e);
+                    if (e.target.closest('.edit-action-btn') || e.target.closest('.publish-action-btn')) return;
+                    const action = governanceActions.find(a => a.id === card.dataset.id);
+                    if (action && action.status !== 'draft') {
+                        handleViewResultsClick(e);
+                    }
                 });
             });
-            document.querySelectorAll('.edit-action-btn').forEach(btn => {
-                btn.addEventListener('click', handleEditActionClick);
-            });
+            document.querySelectorAll('.edit-action-btn').forEach(btn => btn.addEventListener('click', handleEditActionClick));
+            document.querySelectorAll('.publish-action-btn').forEach(btn => btn.addEventListener('click', handlePublishClick));
             document.querySelectorAll('.checklist-accordion-header').forEach(header => {
                 header.addEventListener('click', () => {
                     const card = header.closest('.action-card');
@@ -662,11 +752,8 @@
                     const content = header.nextElementSibling;
                     const isOpen = content.classList.toggle('open');
                     header.classList.toggle('open', isOpen);
-                    if (isOpen) {
-                        openChecklists.add(actionId);
-                    } else {
-                        openChecklists.delete(actionId);
-                    }
+                    if (isOpen) openChecklists.add(actionId);
+                    else openChecklists.delete(actionId);
                 });
             });
             document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(checkbox => {
@@ -682,12 +769,9 @@
             const voteRef = doc(db, 'members_data', currentMember, 'individual_votes', actionId);
             
             try {
-                // Use updateDoc to only change the vote, preserving the checklist.
-                // If the doc doesn't exist, setDoc will be called in the catch block.
                 await updateDoc(voteRef, { vote: vote });
             } catch (err) {
                 if (err.code === 'not-found') {
-                    // Document doesn't exist, create it with the vote and an empty checklist
                     await setDoc(voteRef, { vote: vote, checklist: {} });
                 } else {
                     console.error("Error saving vote:", err);
@@ -717,17 +801,14 @@
             const voteRef = doc(db, 'members_data', currentMember, 'individual_votes', actionId);
 
             try {
-                // Use updateDoc with dot notation to update a nested field.
                 await updateDoc(voteRef, { [`checklist.${itemKey}`]: isChecked });
             } catch (err) {
                  if (err.code === 'not-found') {
-                    // Document doesn't exist, create it with the checklist item and no vote
                     const initialChecklist = { [itemKey]: isChecked };
                     await setDoc(voteRef, { checklist: initialChecklist });
                 } else {
                     console.error("Error updating checklist:", err);
                     alert("Could not save your checklist change. Please try again.");
-                    // Revert checkbox state on error
                     checkbox.checked = !isChecked;
                 }
             }
@@ -758,7 +839,7 @@
         }
         
         function handleEditActionClick(e) {
-            e.stopPropagation(); // Prevent card's click listener
+            e.stopPropagation();
             const actionId = e.currentTarget.dataset.actionId;
             const action = governanceActions.find(a => a.id === actionId);
             if (!action) return;
@@ -768,11 +849,32 @@
             document.getElementById('editGovToolLink').value = action.govToolLink || '';
             document.getElementById('editProposalLink').value = action.proposalLink || '';
             document.getElementById('editWorkingDocLink').value = action.workingDocLink || '';
-            document.getElementById('editIncludeChecklist').checked = action.includeChecklist ?? false; // Set checkbox
+            document.getElementById('editIncludeChecklist').checked = action.includeChecklist ?? false;
             
             initializeDatePicker("#editActionDeadline", action.deadline);
 
             editActionModal.classList.remove('hidden');
+        }
+
+        async function handlePublishClick(e) {
+            e.stopPropagation();
+            const actionId = e.currentTarget.dataset.actionId;
+            const action = governanceActions.find(a => a.id === actionId);
+            if (!action) return;
+
+            showConfirm("Confirm Publish", `Are you sure you want to publish "${action.title}"? It will become visible to all members.`, async () => {
+                try {
+                    await updateDoc(doc(db, 'governance_actions', actionId), { status: 'active' });
+                    await logAuditEvent(actionId, 'ACTION_PUBLISHED', { actionTitle: action.title });
+                    const popup = document.getElementById('voteConfirmationPopup');
+                    popup.textContent = 'Action Published!';
+                    popup.classList.remove('opacity-0');
+                    setTimeout(() => { popup.classList.add('opacity-0'); popup.textContent = 'Vote Registered!'; }, 2500);
+                } catch (err) {
+                    console.error("Error publishing action:", err);
+                    alert("Could not publish the action.");
+                }
+            });
         }
 
         async function handleSaveChanges() {
@@ -817,7 +919,19 @@
             const logSnapshot = await getDocs(logQuery);
 
             if (logSnapshot.empty) {
-                alert("No audit log data to download.");
+                const popup = document.getElementById('voteConfirmationPopup');
+                popup.textContent = 'No audit log data to download.';
+                popup.classList.remove('opacity-0', 'bg-green-500');
+                popup.classList.add('bg-yellow-500');
+                setTimeout(() => { 
+                    popup.classList.add('opacity-0');
+                    // Reset to default state after hiding
+                    setTimeout(() => {
+                        popup.classList.remove('bg-yellow-500');
+                        popup.classList.add('bg-green-500');
+                        popup.textContent = 'Vote Registered!'; 
+                    }, 500);
+                }, 3000);
                 return;
             }
 
@@ -849,24 +963,21 @@
         function initializeDatePicker(selector, defaultDate) { const epochData = getEpochData(); const epochMap = new Map(); epochData.forEach(item => { const dateStr = item.date.toISOString().slice(0, 10); epochMap.set(dateStr, item.epochNumber); }); const fp = flatpickr(selector, { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, minDate: "today", onDayCreate: function(dObj, dStr, fp, dayElem) { const dateStr = dayElem.dateObj.toISOString().slice(0, 10); if (epochMap.has(dateStr)) { dayElem.classList.add("epoch-boundary"); dayElem.title = `Epoch ${epochMap.get(dateStr)} Boundary`; } }, onChange: function(selectedDates, dateStr, instance) { if (selectedDates.length === 0) return; const selectedDayStr = selectedDates[0].toISOString().slice(0, 10); if (epochMap.has(selectedDayStr)) { const newDate = new Date(selectedDates[0]); newDate.setUTCHours(21, 45, 0, 0); instance.setDate(newDate, false); } } }); if (defaultDate) { fp.setDate(new Date(defaultDate)); } }
         function populateAdminSelects() {
             const manageSelect = document.getElementById('manageActionSelect');
-            const currentValue = manageSelect.value;
-            manageSelect.innerHTML = ''; // Clear existing options
-
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = '-- Select Action --';
-            manageSelect.appendChild(defaultOption);
+            // Store currently selected values to re-select them after repopulating
+            const selectedValues = Array.from(manageSelect.selectedOptions).map(opt => opt.value);
+            
+            manageSelect.innerHTML = '';
 
             governanceActions.forEach(action => {
                 const option = document.createElement('option');
                 option.value = action.id;
                 option.textContent = `${action.title} (${action.status || 'active'})`;
+                // Re-select if it was selected before
+                if (selectedValues.includes(action.id)) {
+                    option.selected = true;
+                }
                 manageSelect.appendChild(option);
             });
-
-            if (currentValue) {
-                manageSelect.value = currentValue;
-            }
         }
         
         function setupAdminAccessControls() {
@@ -894,7 +1005,7 @@
             if (unsubscribeLoginCodes) unsubscribeLoginCodes();
             unsubscribeLoginCodes = onSnapshot(collection(db, 'login_codes'), snapshot => {
                 snapshot.forEach(doc => { memberCodes[doc.id] = doc.data(); });
-                updateSelectedMemberStatus(); // Update status for currently selected member
+                updateSelectedMemberStatus();
             });
 
             const updateSelectedMemberStatus = () => {
@@ -1025,7 +1136,6 @@
                 const snapshot = await getDocs(q);
                 
                 if (snapshot.empty && pageIndex > 0) {
-                     // We've gone past the last page
                     currentActivityLogPage--;
                     return;
                 }
@@ -1043,51 +1153,123 @@
                     const time = log.timestamp ? log.timestamp.toDate().toLocaleTimeString() : 'N/A';
                     let description = '';
                     switch(log.type) {
-                        case 'ACTION_CREATED':
-                            description = `<strong>${log.actor}</strong> created action: <em>${log.details.title}</em>`;
-                            break;
-                        case 'ACTION_EDITED':
-                            description = `<strong>${log.actor}</strong> edited action: <em>${log.details.newTitle}</em>`;
-                            break;
-                        case 'ACTION_ARCHIVED':
-                            description = `<strong>${log.actor}</strong> archived action: <em>${log.details.actionTitle}</em>`;
-                            break;
-                        case 'ACTION_AUTO_ARCHIVED':
-                            description = `Action <em>${log.details.actionTitle}</em> was automatically archived.`;
-                            break;
-                        case 'VOTE_CAST':
-                            if (log.details && log.details.vote) {
-                                description = `<strong>${log.actor}</strong> voted <strong>${log.details.vote.toUpperCase()}</strong> on action: <em>${log.details.actionTitle}</em>`;
-                            } else {
-                                description = `<strong>${log.actor}</strong> voted on action: <em>${log.details.actionTitle || ''}</em>`;
-                            }
-                            break;
-                        default:
-                            description = `Unknown event: ${log.type}`;
+                        case 'ACTION_CREATED': description = `<strong>${log.actor}</strong> created action: <em>${log.details.title}</em>`; break;
+                        case 'ACTION_PUBLISHED': description = `<strong>${log.actor}</strong> published action: <em>${log.details.actionTitle}</em>`; break;
+                        case 'ACTION_EDITED': description = `<strong>${log.actor}</strong> edited action: <em>${log.details.newTitle}</em>`; break;
+                        case 'ACTION_ARCHIVED': description = `<strong>${log.actor}</strong> archived action: <em>${log.details.actionTitle}</em>`; break;
+                        case 'ACTION_AUTO_ARCHIVED': description = `Action <em>${log.details.actionTitle}</em> was automatically archived.`; break;
+                        case 'VOTE_CAST': description = `<strong>${log.actor}</strong> voted <strong>${log.details.vote.toUpperCase()}</strong> on action: <em>${log.details.actionTitle}</em>`; break;
+                        case 'BULK_IMPORT': description = `<strong>${log.actor}</strong> bulk imported ${log.details.count} actions.`; break;
+                        default: description = `Unknown event: ${log.type}`;
                     }
                     return `<div class="p-2 border-b border-gray-100"><p class="font-mono text-xs text-gray-500">${time}</p><p>${description}</p></div>`;
                 }).join('');
 
-                // Update pagination controls
                 paginationContainer.innerHTML = `
                     <button id="prevActivityPage" class="btn btn-secondary btn-sm" ${pageIndex === 0 ? 'disabled' : ''}>Previous</button>
                     <span class="p-2 text-sm font-medium">Page ${pageIndex + 1}</span>
                     <button id="nextActivityPage" class="btn btn-secondary btn-sm" ${snapshot.docs.length < 25 ? 'disabled' : ''}>Next</button>
                 `;
 
-                document.getElementById('prevActivityPage')?.addEventListener('click', () => {
-                    if (currentActivityLogPage > 0) {
-                        currentActivityLogPage--;
-                        fetchAndRenderPage(currentActivityLogPage);
-                    }
-                });
-                document.getElementById('nextActivityPage')?.addEventListener('click', () => {
-                    currentActivityLogPage++;
-                    fetchAndRenderPage(currentActivityLogPage);
-                });
+                document.getElementById('prevActivityPage')?.addEventListener('click', () => { if (currentActivityLogPage > 0) { currentActivityLogPage--; fetchAndRenderPage(currentActivityLogPage); } });
+                document.getElementById('nextActivityPage')?.addEventListener('click', () => { currentActivityLogPage++; fetchAndRenderPage(currentActivityLogPage); });
             };
 
             fetchAndRenderPage(0);
+        }
+
+        // --- CSV Import Logic ---
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split(/\r\n|\n/);
+            if (lines.length < 2) return [];
+            const headers = lines[0].split(',').map(h => h.trim());
+            const rows = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i]) continue;
+                const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, '')); // Basic handling for quoted fields
+                if (values.length > 0) {
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] || '';
+                    });
+                    rows.push(row);
+                }
+            }
+            return rows;
+        }
+
+        async function handleCsvImport() {
+            const fileInput = document.getElementById('csvFileInput');
+            const statusEl = document.getElementById('importStatus');
+            const importBtn = document.getElementById('importCsvBtn');
+
+            if (fileInput.files.length === 0) {
+                statusEl.textContent = 'Please select a CSV file first.';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            statusEl.textContent = 'Reading file...';
+            importBtn.disabled = true;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const csvText = e.target.result;
+                    const actionsToImport = parseCSV(csvText);
+                    let importedCount = 0;
+
+                    if (actionsToImport.length === 0) {
+                        statusEl.textContent = 'Error: No valid data rows found.';
+                        importBtn.disabled = false;
+                        return;
+                    }
+
+                    statusEl.textContent = `Validating ${actionsToImport.length} actions...`;
+                    const batch = writeBatch(db);
+
+                    for (const actionData of actionsToImport) {
+                        if (!actionData.id || !actionData.title) {
+                            console.warn('Skipping row due to missing id or title:', actionData);
+                            continue;
+                        }
+                        
+                        const actionRef = doc(db, 'governance_actions', actionData.id.trim());
+                        const deadlineValue = actionData.deadline && !isNaN(new Date(actionData.deadline)) ? new Date(actionData.deadline).toISOString() : null;
+                        const includeChecklistValue = actionData.includeChecklist ? actionData.includeChecklist.toUpperCase() === 'TRUE' : false;
+
+                        const newAction = {
+                            id: actionData.id.trim(),
+                            title: actionData.title.trim(),
+                            govToolLink: actionData.govToolLink || '',
+                            proposalLink: actionData.proposalLink || '',
+                            workingDocLink: actionData.workingDocLink || '',
+                            deadline: deadlineValue,
+                            includeChecklist: includeChecklistValue,
+                            status: 'draft'
+                        };
+                        batch.set(actionRef, newAction);
+                        importedCount++;
+                    }
+
+                    if (importedCount > 0) {
+                        await batch.commit();
+                        await logAuditEvent('N/A', 'BULK_IMPORT', { count: importedCount });
+                        statusEl.textContent = `Successfully imported ${importedCount} actions as drafts.`;
+                    } else {
+                        statusEl.textContent = 'No actions imported. Check CSV for required fields.';
+                    }
+                    fileInput.value = '';
+
+                } catch (error) {
+                    console.error('Error during CSV import:', error);
+                    statusEl.textContent = 'An error occurred during import. Check console.';
+                } finally {
+                    importBtn.disabled = false;
+                }
+            };
+            reader.onerror = () => { statusEl.textContent = 'Error reading the file.'; importBtn.disabled = false; };
+            reader.readAsText(file);
         }
 
         // --- Initial Load ---
@@ -1097,21 +1279,12 @@
             members.forEach(m => { memberSelect.innerHTML += `<option value="${m}">${m}</option>`});
 
             onAuthStateChanged(auth, async (user) => {
-                if (isLoggingIn) return; // Don't do anything if a login is in progress
-
+                if (isLoggingIn) return;
                 if (user) {
                     const sessionRef = doc(db, 'sessions', user.uid);
-                    const sessionDoc = await getDoc(sessionRef).catch(err => {
-                        console.error("Failed to get session doc:", err);
-                        return null;
-                    });
-
-                    if (sessionDoc && sessionDoc.exists()) {
-                        const memberName = sessionDoc.data().memberName;
-                        initializeAppForMember(memberName);
-                    } else {
-                        await handleLogout();
-                    }
+                    const sessionDoc = await getDoc(sessionRef).catch(err => { console.error("Failed to get session doc:", err); return null; });
+                    if (sessionDoc && sessionDoc.exists()) initializeAppForMember(sessionDoc.data().memberName);
+                    else await handleLogout();
                 } else {
                     appContainer.classList.add('hidden');
                     loginModal.classList.remove('hidden');
@@ -1125,29 +1298,21 @@
                 const code = document.getElementById('memberCode').value.trim();
                 const loginError = document.getElementById('loginError');
                 loginError.textContent = '';
-
-                if (!selectedMember || !code) {
-                    loginError.textContent = 'Please select a member and enter a code.';
-                    return;
-                }
+                if (!selectedMember || !code) return loginError.textContent = 'Please select a member and enter a code.';
                 
-                isLoggingIn = true; // Set the flag
+                isLoggingIn = true;
                 document.getElementById('loginBtn').disabled = true;
                 loginError.textContent = 'Verifying...';
 
                 try {
                     let currentUser = auth.currentUser;
-                    if (!currentUser) {
-                        const userCredential = await signInAnonymously(auth);
-                        currentUser = userCredential.user;
-                    }
+                    if (!currentUser) currentUser = (await signInAnonymously(auth)).user;
                     
                     const codeRef = doc(db, 'login_codes', selectedMember);
                     const codeDoc = await getDoc(codeRef);
 
                     if (codeDoc.exists() && codeDoc.data().code === code) {
-                        const sessionRef = doc(db, 'sessions', currentUser.uid);
-                        await setDoc(sessionRef, { memberName: selectedMember });
+                        await setDoc(doc(db, 'sessions', currentUser.uid), { memberName: selectedMember });
                         initializeAppForMember(selectedMember);
                     } else {
                         loginError.textContent = 'Invalid member or code.';
@@ -1156,30 +1321,20 @@
                     console.error("Login failed:", error);
                     loginError.textContent = 'Login failed. Check console, Firestore rules, and browser extensions.';
                 } finally {
-                    isLoggingIn = false; // Reset the flag
+                    isLoggingIn = false;
                     document.getElementById('loginBtn').disabled = false;
                     if(loginError.textContent === 'Verifying...') loginError.textContent = '';
                 }
             });
-            
-            document.getElementById('memberCode').addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    document.getElementById('loginBtn').click();
-                }
-            });
+            document.getElementById('memberCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('loginBtn').click(); } });
 
-            // Change Code Modal Listeners
+            // Modals & Toggles
             changeCodeBtn.addEventListener('click', () => changeCodeModal.classList.remove('hidden'));
             document.getElementById('cancelChangeCodeBtn').addEventListener('click', () => changeCodeModal.classList.add('hidden'));
             document.getElementById('saveChangeCodeBtn').addEventListener('click', handleSetOwnCode);
-
-            // Edit Action Modal Listeners
             document.getElementById('cancelEditActionBtn').addEventListener('click', () => editActionModal.classList.add('hidden'));
             document.getElementById('saveEditActionBtn').addEventListener('click', handleSaveChanges);
-
-            // View Toggle Listener
-            document.getElementById('viewToggle').addEventListener('click', e => { if(e.target.matches('.view-toggle-btn')) { currentView = e.target.dataset.view; document.querySelectorAll('.view-toggle-btn').forEach(btn => btn.classList.remove('active')); e.target.classList.add('active'); renderActions(); } });
+            viewToggle.addEventListener('click', e => { if(e.target.matches('.view-toggle-btn')) { currentView = e.target.dataset.view; document.querySelectorAll('.view-toggle-btn').forEach(btn => btn.classList.remove('active')); e.target.classList.add('active'); renderActions(); } });
             
             // Admin Listeners
             const showConfirm = (title, message, onConfirm) => {
@@ -1189,16 +1344,15 @@
                 const confirmBtn = document.getElementById('confirmActionBtn');
                 const newConfirmBtn = confirmBtn.cloneNode(true);
                 confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-                newConfirmBtn.onclick = () => {
-                    document.getElementById('confirmationModal').classList.add('hidden');
-                    onConfirm();
-                };
+                newConfirmBtn.onclick = () => { document.getElementById('confirmationModal').classList.add('hidden'); onConfirm(); };
             };
             document.getElementById('cancelConfirmBtn').onclick = () => document.getElementById('confirmationModal').classList.add('hidden');
             
             document.getElementById('adminAccordionHeader').addEventListener('click', () => { document.getElementById('adminAccordionContent').classList.toggle('open'); document.getElementById('adminAccordionHeader').classList.toggle('open'); });
             document.getElementById('closeResultsModalBtn').addEventListener('click', () => document.getElementById('resultsModal').classList.add('hidden'));
             document.getElementById('downloadAuditLogBtn').addEventListener('click', downloadAuditLogAsCSV);
+            document.getElementById('importCsvBtn').addEventListener('click', handleCsvImport);
+
             document.getElementById('addActionButton').addEventListener('click', async () => {
                 const id = document.getElementById('newActionIdInput').value.trim();
                 const title = document.getElementById('newActionTitle').value.trim();
@@ -1206,17 +1360,19 @@
                 const proposalLink = document.getElementById('newProposalLink').value.trim();
                 const workingDocLink = document.getElementById('newWorkingDocLink').value.trim();
                 const includeChecklist = document.getElementById('newIncludeChecklist').checked;
+                const isDraft = document.getElementById('saveAsDraft').checked;
                 const deadlineValue = document.getElementById('newActionDeadline').value;
                 const deadline = deadlineValue ? new Date(deadlineValue).toISOString() : null;
                 const statusEl = document.getElementById('actionManagementStatus');
                 if (!id || !title) return statusEl.textContent = "ID and Title are required.";
                 statusEl.textContent = "Adding...";
                 try {
-                    await setDoc(doc(db, 'governance_actions', id), { id, title, govToolLink: link, proposalLink, workingDocLink, status: 'active', deadline, includeChecklist });
+                    await setDoc(doc(db, 'governance_actions', id), { id, title, govToolLink: link, proposalLink, workingDocLink, status: isDraft ? 'draft' : 'active', deadline, includeChecklist });
                     await logAuditEvent(id, 'ACTION_CREATED', { title });
                     statusEl.textContent = `Action added.`;
                     ['newActionIdInput', 'newActionTitle', 'newGovToolLink', 'newProposalLink', 'newWorkingDocLink'].forEach(elId => document.getElementById(elId).value = '');
                     document.getElementById('newIncludeChecklist').checked = false;
+                    document.getElementById('saveAsDraft').checked = false;
                     flatpickr("#newActionDeadline").clear();
                 } catch(e) {
                     statusEl.textContent = `Error: ${e.message}`;
@@ -1224,53 +1380,74 @@
             });
             
             document.getElementById('manageActionSelect').addEventListener('change', (e) => {
-                const selectedId = e.target.value;
+                const selectedOptions = Array.from(e.target.selectedOptions);
                 const archiveBtn = document.getElementById('archiveActionButton');
-                if (!selectedId) {
+                if (selectedOptions.length === 0) {
                     archiveBtn.disabled = true;
                     return;
                 }
-                const selectedAction = governanceActions.find(a => a.id === selectedId);
-                archiveBtn.disabled = selectedAction && selectedAction.status === 'archived';
+                const isAnyArchived = selectedOptions.some(opt => {
+                    const action = governanceActions.find(a => a.id === opt.value);
+                    return action && action.status === 'archived';
+                });
+                archiveBtn.disabled = isAnyArchived;
             });
 
             document.getElementById('archiveActionButton').addEventListener('click', () => {
-                const id = document.getElementById('manageActionSelect').value;
+                const selectedOptions = Array.from(document.getElementById('manageActionSelect').selectedOptions);
+                const selectedIds = selectedOptions.map(opt => opt.value);
                 const statusEl = document.getElementById('actionManagementStatus');
-                if (!id) {
-                    statusEl.textContent = 'Please select an action first.';
+
+                if (selectedIds.length === 0) {
+                    statusEl.textContent = 'Please select one or more actions first.';
                     setTimeout(() => statusEl.textContent = '', 3000);
                     return;
                 }
-                const action = governanceActions.find(a => a.id === id);
-                showConfirm("Confirm Archive", `Are you sure you want to archive this action?`, async () => {
+                
+                const actionTitles = selectedOptions.map(opt => `"${opt.textContent.split(' (')[0]}"`).join(', ');
+                showConfirm(`Confirm Archive (${selectedIds.length})`, `Are you sure you want to archive these actions: ${actionTitles}?`, async () => {
                     statusEl.textContent = 'Archiving...';
-                    await updateDoc(doc(db, 'governance_actions', id), { status: 'archived' });
-                    await logAuditEvent(id, 'ACTION_ARCHIVED', { actionTitle: action.title });
-                    statusEl.textContent = `Action archived.`;
+                    const batch = writeBatch(db);
+                    selectedIds.forEach(id => {
+                        const actionRef = doc(db, 'governance_actions', id);
+                        batch.update(actionRef, { status: 'archived' });
+                    });
+                    await batch.commit();
+
+                    const logPromises = selectedIds.map(id => {
+                        const action = governanceActions.find(a => a.id === id);
+                        return logAuditEvent(id, 'ACTION_ARCHIVED', { actionTitle: action.title });
+                    });
+                    await Promise.all(logPromises);
+                    
+                    statusEl.textContent = `${selectedIds.length} action(s) archived.`;
                 });
             });
 
             document.getElementById('deleteActionButton').addEventListener('click', () => {
-                const id = document.getElementById('manageActionSelect').value;
+                const selectedOptions = Array.from(document.getElementById('manageActionSelect').selectedOptions);
+                const selectedIds = selectedOptions.map(opt => opt.value);
                 const statusEl = document.getElementById('actionManagementStatus');
-                if (!id) {
-                    statusEl.textContent = 'Please select an action first.';
+
+                if (selectedIds.length === 0) {
+                    statusEl.textContent = 'Please select one or more actions first.';
                     setTimeout(() => statusEl.textContent = '', 3000);
                     return;
                 }
-                const actionTitle = governanceActions.find(a => a.id === id)?.title || id;
-                showConfirm("Confirm Deletion", `This is permanent. Are you sure you want to delete "${actionTitle}" and all its votes?`, async () => {
-                    statusEl.textContent = `Deleting ${id}...`;
+
+                const actionTitles = selectedOptions.map(opt => `"${opt.textContent.split(' (')[0]}"`).join(', ');
+                showConfirm(`Confirm Deletion (${selectedIds.length})`, `This is permanent. Are you sure you want to delete these actions and all their votes: ${actionTitles}?`, async () => {
+                    statusEl.textContent = `Deleting ${selectedIds.length} action(s)...`;
                     try {
-                        await deleteDoc(doc(db, 'governance_actions', id));
-                        const deleteVotePromises = regularMembersList.map(member =>
-                            deleteDoc(doc(db, 'members_data', member, 'individual_votes', id)).catch(err => {
-                                console.warn(`Non-critical error deleting vote for ${member} on action ${id}:`, err);
-                            })
-                        );
-                        await Promise.all(deleteVotePromises);
-                        statusEl.textContent = `Action ${id} and associated votes deleted.`;
+                        const batch = writeBatch(db);
+                        selectedIds.forEach(id => {
+                            batch.delete(doc(db, 'governance_actions', id));
+                            regularMembersList.forEach(member => {
+                                batch.delete(doc(db, 'members_data', member, 'individual_votes', id));
+                            });
+                        });
+                        await batch.commit();
+                        statusEl.textContent = `${selectedIds.length} action(s) and associated votes deleted.`;
                     } catch(e) {
                         statusEl.textContent = 'Error during deletion.';
                         console.error("Critical deletion error:", e);
@@ -1279,17 +1456,7 @@
             });
 
             document.getElementById('resetAllVotesBtn').addEventListener('click', () => { showConfirm("Confirm Reset", "Are you sure you want to delete ALL votes for ALL members? This cannot be undone.", async () => { const statusEl = document.getElementById('globalStatus'); statusEl.textContent = "Resetting votes..."; const promises = []; for(const member of regularMembersList) { const snapshot = await getDocs(collection(db, 'members_data', member, 'individual_votes')); snapshot.forEach(d => promises.push(deleteDoc(d.ref))); } await Promise.all(promises); statusEl.textContent = "All votes have been reset."; }); });
-            document.getElementById('resetAuditLogBtn').addEventListener('click', () => {
-                showConfirm("Confirm Audit Log Reset", "This is permanent. Are you sure you want to delete the ENTIRE audit log?", async () => {
-                    const statusEl = document.getElementById('globalStatus');
-                    statusEl.textContent = "Resetting audit log...";
-                    const snapshot = await getDocs(collection(db, 'audit_log'));
-                    const promises = [];
-                    snapshot.forEach(d => promises.push(deleteDoc(d.ref)));
-                    await Promise.all(promises);
-                    statusEl.textContent = "Audit log has been reset.";
-                });
-            });
+            document.getElementById('resetAuditLogBtn').addEventListener('click', () => { showConfirm("Confirm Audit Log Reset", "This is permanent. Are you sure you want to delete the ENTIRE audit log?", async () => { const statusEl = document.getElementById('globalStatus'); statusEl.textContent = "Resetting audit log..."; const snapshot = await getDocs(collection(db, 'audit_log')); const promises = []; snapshot.forEach(d => promises.push(deleteDoc(d.ref))); await Promise.all(promises); statusEl.textContent = "Audit log has been reset."; }); });
         });
     </script>
 </body>
