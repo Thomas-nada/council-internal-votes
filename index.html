@@ -10,8 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Flatpickr Date Picker CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -66,6 +64,7 @@
         input, select {
             border-radius: 0.75rem; padding: 0.75rem 1rem; border: 1px solid #d1d5db;
             box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+            background-color: #fff; /* Ensure select has a background */
         }
         select[multiple] { padding: 0.5rem; }
         input:focus, select:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3); }
@@ -88,8 +87,6 @@
         /* View Toggle Switch */
         .view-toggle-btn { padding: 0.5rem 1.5rem; border-radius: 9999px; font-weight: 500; color: #475569; transition: all 0.3s ease; }
         .view-toggle-btn.active { background-color: white; color: #4f46e5; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .flatpickr-day.epoch-boundary { background: #fee2e2 !important; color: #991b1b !important; border: 1px solid #fca5a5 !important; font-weight: 700; }
-        .flatpickr-day.epoch-boundary:hover { background: #fecaca !important; color: #7f1d1d !important; }
         
         /* Checklist styles */
         .checklist-item { display: flex; align-items: center; padding: 0.5rem 0; }
@@ -118,8 +115,6 @@
 
         window.firebase = { db, auth, onAuthStateChanged, signOut, signInAnonymously, doc, setDoc, onSnapshot, collection, query, getDocs, deleteDoc, orderBy, getDoc, updateDoc, where, writeBatch, serverTimestamp, addDoc, limit, startAfter };
     </script>
-    <!-- Flatpickr Date Picker JS -->
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 <body class="p-4 md:p-8">
 
@@ -171,7 +166,7 @@
                 <div><label for="editGovToolLink" class="block text-sm font-medium text-gray-700">Gov Tool Link</label><input type="url" id="editGovToolLink" class="w-full mt-1"></div>
                 <div><label for="editProposalLink" class="block text-sm font-medium text-gray-700">Link to Proposal</label><input type="url" id="editProposalLink" class="w-full mt-1"></div>
                 <div><label for="editWorkingDocLink" class="block text-sm font-medium text-gray-700">Link to Working Document</label><input type="url" id="editWorkingDocLink" class="w-full mt-1"></div>
-                <div><label for="editActionDeadline" class="block text-sm font-medium text-gray-700">Voting Deadline</label><input type="text" id="editActionDeadline" class="w-full mt-1"></div>
+                <div><label for="editActionDeadline" class="block text-sm font-medium text-gray-700">Voting Deadline</label><select id="editActionDeadline" class="w-full mt-1"></select></div>
                 <div class="flex items-center pt-2">
                     <input type="checkbox" id="editIncludeChecklist" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
                     <label for="editIncludeChecklist" class="ml-2 block text-sm text-gray-900">Include Pre-Vote Checklist</label>
@@ -239,7 +234,7 @@
                             <input type="url" id="newGovToolLink" class="w-full mt-4" placeholder="Gov Tool Link"/>
                             <input type="url" id="newProposalLink" class="w-full mt-4" placeholder="Link to Proposal"/>
                             <input type="url" id="newWorkingDocLink" class="w-full mt-4" placeholder="Link to Working Document"/>
-                            <div class="mt-4"><label for="newActionDeadline" class="font-medium text-sm text-gray-600">Voting Deadline</label><input type="text" id="newActionDeadline" class="w-full" placeholder="Select deadline date & time"/></div>
+                            <div class="mt-4"><label for="newActionDeadline" class="font-medium text-sm text-gray-600">Voting Deadline</label><select id="newActionDeadline" class="w-full"></select></div>
                             <div class="flex items-center mt-4"><input type="checkbox" id="newIncludeChecklist" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"><label for="newIncludeChecklist" class="ml-2 block text-sm text-gray-900">Include Pre-Vote Checklist</label></div>
                             <div class="flex items-center mt-2"><input type="checkbox" id="saveAsDraft" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"><label for="saveAsDraft" class="ml-2 block text-sm text-gray-900">Save as Draft</label></div>
                             <button id="addActionButton" class="w-full btn btn-primary mt-2">Add New Action</button>
@@ -348,7 +343,7 @@
                 memberSummaryPanel.classList.add('hidden');
                 changeCodeBtn.classList.add('hidden');
                 viewToggle.querySelector('[data-view="draft"]').classList.remove('hidden');
-                initializeDatePicker("#newActionDeadline");
+                populateEpochSelectors("#newActionDeadline");
                 setupAdminAccessControls();
                 setupAdminActivityListener();
             } else {
@@ -851,7 +846,7 @@
             document.getElementById('editWorkingDocLink').value = action.workingDocLink || '';
             document.getElementById('editIncludeChecklist').checked = action.includeChecklist ?? false;
             
-            initializeDatePicker("#editActionDeadline", action.deadline);
+            populateEpochSelectors("#editActionDeadline", action.deadline);
 
             editActionModal.classList.remove('hidden');
         }
@@ -884,8 +879,7 @@
             const newProposalLink = document.getElementById('editProposalLink').value.trim();
             const newWorkingDocLink = document.getElementById('editWorkingDocLink').value.trim();
             const includeChecklist = document.getElementById('editIncludeChecklist').checked;
-            const newDeadlineValue = document.getElementById('editActionDeadline').value;
-            const newDeadline = newDeadlineValue ? new Date(newDeadlineValue).toISOString() : null;
+            const newDeadline = document.getElementById('editActionDeadline').value || null;
             const errorEl = document.getElementById('editActionError');
 
             errorEl.textContent = '';
@@ -959,11 +953,71 @@
         }
 
         // --- Admin Functions ---
-        function getEpochData() { const epochData = []; const baseEpoch = 532; let currentDate = new Date(Date.UTC(2025, 0, 4, 21, 45, 0)); const endYear = new Date().getUTCFullYear() + 5; const endDate = new Date(Date.UTC(endYear, 0, 1)); let currentEpoch = baseEpoch; while (currentDate < endDate) { epochData.push({ date: new Date(currentDate), epochNumber: currentEpoch }); currentDate.setUTCDate(currentDate.getUTCDate() + 5); currentEpoch++; } return epochData; }
-        function initializeDatePicker(selector, defaultDate) { const epochData = getEpochData(); const epochMap = new Map(); epochData.forEach(item => { const dateStr = item.date.toISOString().slice(0, 10); epochMap.set(dateStr, item.epochNumber); }); const fp = flatpickr(selector, { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, minDate: "today", onDayCreate: function(dObj, dStr, fp, dayElem) { const dateStr = dayElem.dateObj.toISOString().slice(0, 10); if (epochMap.has(dateStr)) { dayElem.classList.add("epoch-boundary"); dayElem.title = `Epoch ${epochMap.get(dateStr)} Boundary`; } }, onChange: function(selectedDates, dateStr, instance) { if (selectedDates.length === 0) return; const selectedDayStr = selectedDates[0].toISOString().slice(0, 10); if (epochMap.has(selectedDayStr)) { const newDate = new Date(selectedDates[0]); newDate.setUTCHours(21, 45, 0, 0); instance.setDate(newDate, false); } } }); if (defaultDate) { fp.setDate(new Date(defaultDate)); } }
+        function populateEpochSelectors(selector, defaultValue) {
+            const selectEl = document.querySelector(selector);
+            if (!selectEl) return;
+
+            // --- Date Generation ---
+            const epochData = [];
+            const refDate = new Date(Date.UTC(2025, 6, 13, 21, 45, 0)); // July 13, 2025, 21:45 UTC
+            const refEpoch = 569;
+
+            // Calculate start date for Epoch 532
+            const startEpoch = 532;
+            const epochDiff = refEpoch - startEpoch;
+            const startDate = new Date(refDate.getTime() - epochDiff * 5 * 24 * 60 * 60 * 1000);
+
+            // Generate epochs from 532 up to a few years in the future
+            const endYear = new Date().getUTCFullYear() + 5;
+            const finalDate = new Date(Date.UTC(endYear, 0, 1));
+            
+            let currentDate = startDate;
+            let currentEpochNum = startEpoch;
+
+            while (currentDate < finalDate) {
+                const dateString = new Intl.DateTimeFormat('en-US', {
+                    weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false
+                }).format(currentDate).replace(',', '');
+
+                epochData.push({
+                    iso: currentDate.toISOString(),
+                    text: `${dateString} UTC (End of Epoch ${currentEpochNum})`
+                });
+
+                // Move to the next epoch
+                currentDate = new Date(currentDate.getTime() + 5 * 24 * 60 * 60 * 1000);
+                currentEpochNum++;
+            }
+
+            // --- Find Default Selection ---
+            const now = new Date();
+            let currentEpochIndex = epochData.findIndex(epoch => new Date(epoch.iso) > now);
+            if (currentEpochIndex === -1) currentEpochIndex = epochData.length - 1; // Default to last if all are in the past
+
+            const defaultSelectionIndex = Math.min(currentEpochIndex + 6, epochData.length - 1);
+            const defaultISO = epochData[defaultSelectionIndex].iso;
+
+            // --- Populate Selector ---
+            selectEl.innerHTML = '<option value="">-- No Deadline --</option>';
+
+            epochData.forEach(epoch => {
+                const option = document.createElement('option');
+                option.value = epoch.iso;
+                option.textContent = epoch.text;
+                selectEl.appendChild(option);
+            });
+
+            // --- Set Value ---
+            if (defaultValue) {
+                selectEl.value = defaultValue;
+            } else {
+                selectEl.value = defaultISO;
+            }
+        }
+
         function populateAdminSelects() {
             const manageSelect = document.getElementById('manageActionSelect');
-            // Store currently selected values to re-select them after repopulating
             const selectedValues = Array.from(manageSelect.selectedOptions).map(opt => opt.value);
             
             manageSelect.innerHTML = '';
@@ -972,7 +1026,6 @@
                 const option = document.createElement('option');
                 option.value = action.id;
                 option.textContent = `${action.title} (${action.status || 'active'})`;
-                // Re-select if it was selected before
                 if (selectedValues.includes(action.id)) {
                     option.selected = true;
                 }
@@ -1361,8 +1414,7 @@
                 const workingDocLink = document.getElementById('newWorkingDocLink').value.trim();
                 const includeChecklist = document.getElementById('newIncludeChecklist').checked;
                 const isDraft = document.getElementById('saveAsDraft').checked;
-                const deadlineValue = document.getElementById('newActionDeadline').value;
-                const deadline = deadlineValue ? new Date(deadlineValue).toISOString() : null;
+                const deadline = document.getElementById('newActionDeadline').value || null;
                 const statusEl = document.getElementById('actionManagementStatus');
                 if (!id || !title) return statusEl.textContent = "ID and Title are required.";
                 statusEl.textContent = "Adding...";
@@ -1373,7 +1425,7 @@
                     ['newActionIdInput', 'newActionTitle', 'newGovToolLink', 'newProposalLink', 'newWorkingDocLink'].forEach(elId => document.getElementById(elId).value = '');
                     document.getElementById('newIncludeChecklist').checked = false;
                     document.getElementById('saveAsDraft').checked = false;
-                    flatpickr("#newActionDeadline").clear();
+                    populateEpochSelectors("#newActionDeadline");
                 } catch(e) {
                     statusEl.textContent = `Error: ${e.message}`;
                 }
