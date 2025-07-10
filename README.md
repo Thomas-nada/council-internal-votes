@@ -65,7 +65,7 @@ To see past proposals:
 
 For security, you can change your personal login code at any time.
 
-1. Click the **Key Icon** (`<i class="fas fa-key"></i>`) in the header.
+1. Click the **Key Icon** in the header.
 2. A modal will appear. Enter your desired new code in both fields.
 3. Click "Save Changes." Your login code is now updated.
 
@@ -98,7 +98,7 @@ The collapsible "Admin Tools" panel is visible only to you. Click the header to 
 
 #### Editing and Publishing Actions
 
-* **Edit:** Click the **Pencil Icon** (`<i class="fas fa-pencil-alt"></i>`) on any action card (draft, active, or archived) to open a modal where you can edit its details.
+* **Edit:** Click the **Pencil Icon** on any action card (draft, active, or archived) to open a modal where you can edit its details.
 * **Publish a Draft:** In the "Drafts" view, click the **"Publish"** button on a draft card to make it active and visible to all members for voting.
 
 #### Archiving and Deleting Actions
