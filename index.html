@@ -830,7 +830,36 @@
             const summary = getActionVoteSummary(actionId);
             const { text: deadlineText, color: deadlineColor, isPast } = formatTimeRemaining(action.deadline);
             const deadlineHTML = action.deadline ? `<p class="text-center font-semibold ${deadlineColor}">${isPast ? deadlineText : `Ends: ${new Date(action.deadline).toLocaleString()}`}</p>` : '<p class="text-center text-gray-500">No deadline set</p>';
-            modalContent.innerHTML = `<div>${deadlineHTML}<h4 class="text-lg font-semibold text-gray-700 mb-3 mt-4">Overall Results</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center"><div class="p-3 bg-gray-50 rounded-lg"><p class="text-2xl font-bold text-green-600">${summary.yes}</p><p class="text-sm text-gray-600">Yes</p></div><div class="p-3 bg-gray-50 rounded-lg"><p class="text-2xl font-bold text-red-600">${summary.no}</p><p class="text-sm text-gray-600">No</p></div><div class="p-3 bg-gray-50 rounded-lg"><p class="text-2xl font-bold text-yellow-600">${summary.abstain}</p><p class="text-sm text-gray-600">Abstain</p></div><div class="p-3 bg-gray-50 rounded-lg"><p class="text-2xl font-bold ${summary.quorumMet ? 'text-green-600' : 'text-red-600'}">${summary.quorumMet ? 'Met' : 'Not Met'}</p><p class="text-sm text-gray-600">Quorum (${summary.total}/${regularMembersList.length})</p></div><div class="p-3 bg-gray-50 rounded-lg col-span-full"><p class="text-2xl font-bold text-blue-600">${summary.councilVote}</p><p class="text-sm text-gray-600">Final Council Vote</p></div></div></div><div><h4 class="text-lg font-semibold text-gray-700 mt-6 mb-3">Individual Votes</h4><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${votersHTML}</div></div>`;
+            
+            const linksHTML = `
+                <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                    <h5 class="font-semibold text-md text-gray-700 mb-2">Relevant Links</h5>
+                    <div class="flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2 text-sm">
+                        ${action.govToolLink ? `<a href="${action.govToolLink}" target="_blank" class="text-blue-600 hover:underline"><i class="fas fa-link mr-1"></i>GovTool Link (ID)</a>` : ''}
+                        ${action.proposalLink ? `<a href="${action.proposalLink}" target="_blank" class="text-blue-600 hover:underline"><i class="fas fa-file-alt mr-1"></i>Proposal</a>` : ''}
+                        ${action.workingDocLink ? `<a href="${action.workingDocLink}" target="_blank" class="text-blue-600 hover:underline"><i class="fas fa-edit mr-1"></i>Working Doc</a>` : ''}
+                    </div>
+                </div>
+            `;
+
+            modalContent.innerHTML = `
+                <div>
+                    ${deadlineHTML}
+                    ${linksHTML}
+                    <h4 class="text-lg font-semibold text-gray-700 mb-3 mt-4">Overall Results</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                        <div class="p-3 bg-gray-50 rounded-lg"><p class="text-2xl font-bold text-green-600">${summary.yes}</p><p class="text-sm text-gray-600">Yes</p></div>
+                        <div class="p-3 bg-gray-50 rounded-lg"><p class="text-2xl font-bold text-red-600">${summary.no}</p><p class="text-sm text-gray-600">No</p></div>
+                        <div class="p-3 bg-gray-50 rounded-lg"><p class="text-2xl font-bold text-yellow-600">${summary.abstain}</p><p class="text-sm text-gray-600">Abstain</p></div>
+                        <div class="p-3 bg-gray-50 rounded-lg"><p class="text-2xl font-bold ${summary.quorumMet ? 'text-green-600' : 'text-red-600'}">${summary.quorumMet ? 'Met' : 'Not Met'}</p><p class="text-sm text-gray-600">Quorum (${summary.total}/${regularMembersList.length})</p></div>
+                        <div class="p-3 bg-gray-50 rounded-lg col-span-full"><p class="text-2xl font-bold text-blue-600">${summary.councilVote}</p><p class="text-sm text-gray-600">Final Council Vote</p></div>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-700 mt-6 mb-3">Individual Votes</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${votersHTML}</div>
+                </div>
+            `;
         }
         
         function handleEditActionClick(e) {
