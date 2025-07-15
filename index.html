@@ -89,9 +89,11 @@
         .view-toggle-btn.active { background-color: white; color: #4f46e5; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         
         /* Checklist styles */
-        .checklist-item { display: flex; align-items: center; padding: 0.5rem 0; }
-        .checklist-item input[type="checkbox"] { width: 1.25rem; height: 1.25rem; margin-right: 0.75rem; cursor: pointer; }
+        .checklist-item { display: flex; align-items: flex-start; padding: 0.5rem 0; }
+        .checklist-item input[type="checkbox"] { flex-shrink: 0; width: 1.25rem; height: 1.25rem; margin-right: 0.75rem; margin-top: 0.125rem; cursor: pointer; }
         .checklist-item label { user-select: none; cursor: pointer; }
+        .checklist-section-title { font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; color: #1e3a8a; }
+
     </style>
     <!-- Firebase SDKs -->
     <script type="module">
@@ -293,12 +295,33 @@
         const members = [...regularMembersList, "Admin"];
         const QUORUM_REQUIRED = 4;
         const CHECKLIST_ITEMS = {
-            walletAddress: "Wallet Address",
-            budgetAmount: "Budget Amount",
-            ipfs: "IPFS",
-            abstract: "Abstract",
-            copyPasta: "Copy/Pasta",
-            autoAbstain: "Auto-Abstain"
+            // General Checks
+            section_general: "General Checks",
+            art3_sec5_format: "Article III - Section 5: Follows a standardized and legible format including URL and a hash of all documented off-chain content.",
+            art3_sec5_rationale: "Article III - Section 5: Sufficient rationale provided, including a minimum of a title, abstract, reason for the proposal and relevant supporting materials.",
+            art3_sec5_identical: "Article III - Section 5: Content is identical to the final off-chain version of the proposed action. [Hash matches]",
+            art3_sec5_transparent: "Article III - Section 5: Open, transparent and protected from undue influence or manipulation. [Ensure withdrawal amount on-chain matches the proposal metadata amount]",
+            
+            // Treasury Withdrawal Specific Checks
+            section_treasury: "Treasury Withdrawal Specific Checks",
+            art4_sec1_budget: "Article IV – Section 1: Owners of ada have approved a budget through an on-chain “info” action. [Link to previously approved budget]",
+            art4_sec2_oversight: "Article IV – Section 2: Specifies a process for overseeing use of funds from Cardano Blockchain treasury withdrawals including designating one or more administrators who shall be responsible for such oversight.",
+            art4_sec3_ncl: "Article IV – Section 3: Does not cause the Cardano Blockchain treasury balance to violate the currently applicable net change limit. [Current NCL and link to relevant GA]",
+            art4_sec3_budget_effect: "Article IV – Section 3: Authorized and made pursuant to a budget that is in effect and has not been determined to be unconstitutional by the Constitutional Committee.",
+            art4_sec4_audits: "Article IV – Section 4: Outlines an allocation of ada as part of the funding request to cover the cost of periodic independent audits and the implementation of oversight metrics as to the use of such ada.",
+            art4_sec4_dispute: "Article IV – Section 4: Contractual obligations governing the use of treasury withdrawn ada includes dispute resolution provisions.",
+            art4_sec5_auditable: "Article IV – Section 5: Treasury withdrawn ada are to be kept in one or more accounts, auditable by the Cardano Community.",
+            art4_sec5_delegation: "Article IV – Section 5: Accounts shall not be delegated to an SPO and must be delegated to the predefined auto abstain voting option. [Include checked addresses]",
+            
+            // Appendix
+            section_appendix: "Appendix I – Section 3",
+            appendix_treasury_02a: "TREASURY-02a – The withdrawal request is made pursuant to an approved budget and does not exceed the net change limit.",
+            appendix_treasury_03a: "TREASURY-03a – Withdrawal request is denominated in ada.",
+            appendix_treasury_04a: "TREASURY-04a – Withdrawal is requested pursuant to a previous on-chain governance action agreed by the DReps with >50% of the active voting stake.",
+
+            // Additional Safety Check
+            section_safety: "Additional Safety Check",
+            safety_metadata: "Metadata author signatures for the treasury withdrawal match those used to sign both budget info action and the related treasury withdrawal request. This is now visually confirmed in the GovTool UI but it has also been manually cross-referenced between relevant metadata files."
         };
         
         // State variables
@@ -614,11 +637,14 @@
             const checklistContainerHTML = action.includeChecklist ? `
                 <div class="mt-4 pt-4 border-t border-gray-200">
                     <div class="checklist-accordion-header cursor-pointer flex justify-between items-center text-gray-700 hover:text-blue-600">
-                        <h4 class="font-semibold">Pre-Vote Checklist</h4>
+                        <h4 class="font-semibold">Treasury Withdrawal Constitutionality Checklist</h4>
                         <i class="fas fa-chevron-down"></i>
                     </div>
                     <div class="checklist-accordion-content accordion-content">
                         ${Object.entries(CHECKLIST_ITEMS).map(([key, label]) => {
+                            if (key.startsWith('section_')) {
+                                return `<h5 class="checklist-section-title">${label}</h5>`;
+                            }
                             const isChecked = currentVoteData?.checklist?.[key] ?? false;
                             return `
                                 <div class="checklist-item">
