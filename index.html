@@ -102,6 +102,8 @@
         import { getFirestore, doc, setDoc, onSnapshot, collection, query, getDocs, deleteDoc, orderBy, getDoc, updateDoc, where, writeBatch, serverTimestamp, addDoc, limit, startAfter } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
         // Your web app's Firebase configuration
+        // NOTE: The API key and other Firebase configurations are placeholders.
+        // In a real application, these would be securely managed and provided by the environment.
         const firebaseConfig = {
             apiKey: "AIzaSyBSVE6WIdkRNbyOEg30gsr5hY2ZGVIHXdo",
             authDomain: "council-voting-app.firebaseapp.com",
@@ -115,29 +117,42 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
+        // Expose Firebase objects globally for easier access in the main script
         window.firebase = { db, auth, onAuthStateChanged, signOut, signInAnonymously, doc, setDoc, onSnapshot, collection, query, getDocs, deleteDoc, orderBy, getDoc, updateDoc, where, writeBatch, serverTimestamp, addDoc, limit, startAfter };
     </script>
 </head>
 <body class="p-4 md:p-8">
 
+    <!-- Confirmation Pop-up (for vote/action success) -->
     <div id="voteConfirmationPopup" class="fixed top-5 right-5 bg-green-500 text-white py-3 px-6 rounded-xl shadow-lg opacity-0 transition-opacity duration-300 ease-in-out" style="z-index: 2000;">Vote Registered!</div>
+    
+    <!-- Generic Confirmation Modal -->
     <div id="confirmationModal" class="modal-overlay hidden">
-        <div class="modal-content text-center"><h3 class="text-xl font-bold text-gray-800 mb-4" id="confirmModalTitle">Confirm Action</h3><p class="text-gray-700 mb-6" id="confirmMessage">Are you sure?</p><div class="flex justify-center space-x-4"><button id="cancelConfirmBtn" class="btn btn-secondary">Cancel</button><button id="confirmActionBtn" class="btn btn-danger">Confirm</button></div></div>
+        <div class="modal-content text-center">
+            <h3 class="text-xl font-bold text-gray-800 mb-4" id="confirmModalTitle">Confirm Action</h3>
+            <p class="text-gray-700 mb-6" id="confirmMessage">Are you sure?</p>
+            <div class="flex justify-center space-x-4">
+                <button id="cancelConfirmBtn" class="btn btn-secondary">Cancel</button>
+                <button id="confirmActionBtn" class="btn btn-danger">Confirm</button>
+            </div>
+        </div>
     </div>
     
+    <!-- Login Modal -->
     <div id="loginModal" class="modal-overlay">
         <div class="modal-content text-center">
             <h2 class="text-3xl font-bold text-gray-800 mb-2">Welcome</h2>
             <p class="text-gray-600 mb-6">to the Intersect Constitutional Council Voting App</p>
             <div id="loginFormContainer" class="pt-4 mt-4 border-t border-gray-200 space-y-4">
-                 <select id="memberSelect" class="w-full"></select>
-                 <input type="password" id="memberCode" class="w-full" placeholder="Enter your code...">
+                <select id="memberSelect" class="w-full"></select>
+                <input type="password" id="memberCode" class="w-full" placeholder="Enter your code...">
             </div>
             <p id="loginError" class="text-red-500 text-sm my-4"></p>
             <button id="loginBtn" class="w-full btn btn-primary">Login</button>
         </div>
     </div>
 
+    <!-- Change Code Modal -->
     <div id="changeCodeModal" class="modal-overlay hidden">
         <div class="modal-content">
             <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Change Your Login Code</h3>
@@ -159,6 +174,7 @@
         </div>
     </div>
 
+    <!-- Edit Action Modal (Admin) -->
     <div id="editActionModal" class="modal-overlay hidden">
         <div class="modal-content !max-w-lg">
             <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Edit Governance Action</h3>
@@ -182,7 +198,16 @@
         </div>
     </div>
 
-    <div id="resultsModal" class="modal-overlay hidden"><div class="modal-content !max-w-3xl"><div class="flex justify-between items-start"><h3 class="text-2xl font-bold text-gray-800 mb-4" id="resultsModalTitle">Vote Details</h3><button id="closeResultsModalBtn" class="text-3xl leading-none font-bold text-gray-400 hover:text-gray-800">&times;</button></div><div id="resultsModalContent" class="space-y-6 max-h-[70vh] overflow-y-auto pr-2"></div></div></div>
+    <!-- Results Modal (Admin) -->
+    <div id="resultsModal" class="modal-overlay hidden">
+        <div class="modal-content !max-w-3xl">
+            <div class="flex justify-between items-start">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4" id="resultsModalTitle">Vote Details</h3>
+                <button id="closeResultsModalBtn" class="text-3xl leading-none font-bold text-gray-400 hover:text-gray-800">&times;</button>
+            </div>
+            <div id="resultsModalContent" class="space-y-6 max-h-[70vh] overflow-y-auto pr-2"></div>
+        </div>
+    </div>
 
     <!-- Main App Container -->
     <div id="appContainer" class="max-w-7xl mx-auto hidden">
@@ -202,17 +227,24 @@
             </div>
         </header>
 
-        <!-- Member Summary Panel -->
+        <!-- Member Summary Panel (for regular members) -->
         <div id="memberSummaryPanel" class="hidden bg-white rounded-2xl shadow-md p-6 mb-8">
             <h2 class="text-2xl font-bold text-gray-800 mb-4">Your Voting Summary</h2>
             <div id="memberSummaryContent" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                 <div class="p-4 bg-gray-50 rounded-lg animate-pulse h-20"></div><div class="p-4 bg-gray-50 rounded-lg animate-pulse h-20"></div><div class="p-4 bg-gray-50 rounded-lg animate-pulse h-20"></div><div class="p-4 bg-gray-50 rounded-lg animate-pulse h-20"></div>
+                <!-- Placeholder for summary content, will be populated by JS -->
+                <div class="p-4 bg-gray-50 rounded-lg animate-pulse h-20"></div>
+                <div class="p-4 bg-gray-50 rounded-lg animate-pulse h-20"></div>
+                <div class="p-4 bg-gray-50 rounded-lg animate-pulse h-20"></div>
+                <div class="p-4 bg-gray-50 rounded-lg animate-pulse h-20"></div>
             </div>
         </div>
 
         <!-- Admin Panel (Collapsible) -->
         <div id="adminPanel" class="hidden bg-white rounded-2xl shadow-md mb-8">
-            <div id="adminAccordionHeader" class="p-6 cursor-pointer flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800">Admin Tools</h2><i class="fas fa-chevron-down text-gray-500"></i></div>
+            <div id="adminAccordionHeader" class="p-6 cursor-pointer flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-gray-800">Admin Tools</h2>
+                <i class="fas fa-chevron-down text-gray-500"></i>
+            </div>
             <div id="adminAccordionContent" class="accordion-content border-t border-gray-200">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <!-- Manage Actions Column -->
@@ -230,15 +262,24 @@
 
                         <!-- Add Single Action Section -->
                         <div class="pt-4 border-t">
-                             <h4 class="font-semibold text-md text-gray-700 mb-2">Add Single Action</h4>
+                            <h4 class="font-semibold text-md text-gray-700 mb-2">Add Single Action</h4>
                             <input type="text" id="newActionIdInput" class="w-full" placeholder="Gov Action ID"/>
                             <input type="text" id="newActionTitle" class="w-full mt-4" placeholder="New Action Title"/>
                             <input type="url" id="newGovToolLink" class="w-full mt-4" placeholder="Gov Tool Link"/>
                             <input type="url" id="newProposalLink" class="w-full mt-4" placeholder="Link to Proposal"/>
                             <input type="url" id="newWorkingDocLink" class="w-full mt-4" placeholder="Link to Working Document"/>
-                            <div class="mt-4"><label for="newActionDeadline" class="font-medium text-sm text-gray-600">Voting Deadline</label><select id="newActionDeadline" class="w-full"></select></div>
-                            <div class="flex items-center mt-4"><input type="checkbox" id="newIncludeChecklist" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"><label for="newIncludeChecklist" class="ml-2 block text-sm text-gray-900">Include Pre-Vote Checklist</label></div>
-                            <div class="flex items-center mt-2"><input type="checkbox" id="saveAsDraft" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"><label for="saveAsDraft" class="ml-2 block text-sm text-gray-900">Save as Draft</label></div>
+                            <div class="mt-4">
+                                <label for="newActionDeadline" class="font-medium text-sm text-gray-600">Voting Deadline</label>
+                                <select id="newActionDeadline" class="w-full"></select>
+                            </div>
+                            <div class="flex items-center mt-4">
+                                <input type="checkbox" id="newIncludeChecklist" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                <label for="newIncludeChecklist" class="ml-2 block text-sm text-gray-900">Include Pre-Vote Checklist</label>
+                            </div>
+                            <div class="flex items-center mt-2">
+                                <input type="checkbox" id="saveAsDraft" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                <label for="saveAsDraft" class="ml-2 block text-sm text-gray-900">Save as Draft</label>
+                            </div>
                             <button id="addActionButton" class="w-full btn btn-primary mt-2">Add New Action</button>
                         </div>
                         
@@ -277,25 +318,27 @@
             </div>
         </div>
 
-        <!-- View Toggle -->
+        <!-- View Toggle (Active, Drafts, Archive) -->
         <div id="viewToggle" class="flex justify-center mb-6 bg-gray-200 p-1 rounded-full w-max mx-auto">
             <button data-view="active" class="view-toggle-btn active">Active</button>
             <button data-view="draft" class="view-toggle-btn hidden">Drafts</button>
             <button data-view="archived" class="view-toggle-btn">Archive</button>
         </div>
-        <!-- Governance Actions List -->
+        
+        <!-- Governance Actions List Container -->
         <main id="actionsContainer" class="space-y-6"></main>
     </div>
 
     <script type="module">
+        // Destructure Firebase objects from the global window object
         const { db, auth, onAuthStateChanged, signOut, signInAnonymously, doc, setDoc, onSnapshot, collection, query, getDocs, deleteDoc, orderBy, getDoc, updateDoc, where, writeBatch, serverTimestamp, addDoc, limit, startAfter } = window.firebase;
 
-        // Configuration
+        // Configuration variables
         const regularMembersList = ["Hosky", "Ian", "Jose", "Juan", "Mauro", "Mercy", "Ubio"];
-        const members = [...regularMembersList, "Admin"];
-        const QUORUM_REQUIRED = 4;
+        const members = [...regularMembersList, "Admin"]; // All possible members including Admin
+        const QUORUM_REQUIRED = 4; // Number of votes required for quorum
         const CHECKLIST_ITEMS = {
-            // General Checks
+            // General Checks for proposals
             section_general: "General Checks",
             art3_sec5_format: "Article III - Section 5: Follows a standardized and legible format including URL and a hash of all documented off-chain content.",
             art3_sec5_rationale: "Article III - Section 5: Sufficient rationale provided, including a minimum of a title, abstract, reason for the proposal and relevant supporting materials.",
@@ -325,22 +368,23 @@
         };
         
         // State variables
-        let currentMember = null;
-        let isLoggingIn = false; // Flag to prevent race conditions
-        let governanceActions = [];
-        let memberVotes = {};
-        let allMemberVotes = {}; // Cache for all votes
+        let currentMember = null; // Stores the currently logged-in member's name
+        let isLoggingIn = false; // Flag to prevent race conditions during login
+        let governanceActions = []; // Array to store all governance actions
+        let memberVotes = {}; // Object to store the current member's votes
+        let allMemberVotes = {}; // Cache for all members' votes (used for summaries)
+        // Firebase unsubscribe functions to manage listeners
         let unsubscribeActions = null;
         let unsubscribeVotes = null;
         let unsubscribeLoginCodes = null;
         let unsubscribeAllVotes = null;
         let unsubscribeActivity = null;
-        let currentView = 'active';
-        let activityLogPageSnapshots = [null]; // For pagination
-        let currentActivityLogPage = 0;
-        let openChecklists = new Set(); // To preserve checklist accordion state
+        let currentView = 'active'; // Current view filter for actions (active, draft, archived)
+        let activityLogPageSnapshots = [null]; // Stores document snapshots for audit log pagination
+        let currentActivityLogPage = 0; // Current page number for audit log
+        let openChecklists = new Set(); // To preserve checklist accordion state across re-renders
 
-        // DOM Elements
+        // DOM Elements - get references for frequently used elements
         const loginModal = document.getElementById('loginModal');
         const appContainer = document.getElementById('appContainer');
         const actionsContainer = document.getElementById('actionsContainer');
@@ -353,88 +397,137 @@
         const editActionModal = document.getElementById('editActionModal');
         const viewToggle = document.getElementById('viewToggle');
 
-        // --- Core Logic ---
+        /**
+         * Displays a generic confirmation modal.
+         * @param {string} title - The title for the confirmation modal.
+         * @param {string} message - The message to display in the confirmation modal.
+         * @param {Function} onConfirm - Callback function to execute if the user confirms.
+         */
+        const showConfirm = (title, message, onConfirm) => {
+            document.getElementById('confirmModalTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmationModal').classList.remove('hidden');
+            
+            // Re-clone the confirm button to remove old event listeners and attach new one
+            const confirmBtn = document.getElementById('confirmActionBtn');
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            
+            newConfirmBtn.onclick = () => {
+                document.getElementById('confirmationModal').classList.add('hidden');
+                onConfirm(); // Execute the provided callback on confirmation
+            };
+        };
+
+        // --- Core Application Logic ---
+
+        /**
+         * Initializes the application UI and listeners based on the logged-in member.
+         * @param {string} member - The name of the logged-in member ('Admin' or a regular member name).
+         */
         function initializeAppForMember(member) {
             currentMember = member;
             currentMemberDisplay.textContent = member;
 
-            loginModal.classList.add('hidden');
-            appContainer.classList.remove('hidden');
+            loginModal.classList.add('hidden'); // Hide login modal
+            appContainer.classList.remove('hidden'); // Show main app container
             
             if (member === 'Admin') {
-                adminPanel.classList.remove('hidden');
-                memberSummaryPanel.classList.add('hidden');
-                changeCodeBtn.classList.add('hidden');
-                viewToggle.querySelector('[data-view="draft"]').classList.remove('hidden');
-                populateEpochSelectors("#newActionDeadline");
-                setupAdminAccessControls();
-                setupAdminActivityListener();
+                adminPanel.classList.remove('hidden'); // Show admin panel
+                memberSummaryPanel.classList.add('hidden'); // Hide member summary
+                changeCodeBtn.classList.add('hidden'); // Hide change code button for admin
+                viewToggle.querySelector('[data-view="draft"]').classList.remove('hidden'); // Show draft toggle for admin
+                populateEpochSelectors("#newActionDeadline"); // Populate deadline selector for new actions
+                setupAdminAccessControls(); // Setup admin-specific user access controls
+                setupAdminActivityListener(); // Setup audit log listener for admin
             } else {
-                adminPanel.classList.add('hidden');
-                memberSummaryPanel.classList.remove('hidden');
-                changeCodeBtn.classList.remove('hidden');
-                viewToggle.querySelector('[data-view="draft"]').classList.add('hidden');
-                setupMemberVotesListener();
+                adminPanel.classList.add('hidden'); // Hide admin panel
+                memberSummaryPanel.classList.remove('hidden'); // Show member summary
+                changeCodeBtn.classList.remove('hidden'); // Show change code button for regular members
+                viewToggle.querySelector('[data-view="draft"]').classList.add('hidden'); // Hide draft toggle for regular members
+                setupMemberVotesListener(); // Listen to current member's votes
             }
-            setupActionsListener();
-            setupAllVotesListener(); // Listen to all votes for summary data
-            startGlobalTimer();
+            setupActionsListener(); // Listen to all governance actions
+            setupAllVotesListener(); // Listen to all votes for summary calculations
+            startGlobalTimer(); // Start timer for deadlines
         }
 
+        /**
+         * Handles the logout process, unsubscribing from all Firebase listeners
+         * and resetting the UI to the login state.
+         */
         async function handleLogout() {
+            // Unsubscribe from all active Firebase listeners to prevent memory leaks
             if (unsubscribeActions) unsubscribeActions();
             if (unsubscribeVotes) unsubscribeVotes();
             if (unsubscribeLoginCodes) unsubscribeLoginCodes();
             if (unsubscribeAllVotes) unsubscribeAllVotes();
             if (unsubscribeActivity) unsubscribeActivity();
 
+            // Delete the session document for the current user
             const user = auth.currentUser;
             if (user) {
                 const sessionRef = doc(db, 'sessions', user.uid);
                 await deleteDoc(sessionRef).catch(err => console.error("Error deleting session doc:", err));
             }
 
+            // Sign out from Firebase Auth
             await signOut(auth);
 
+            // Reset local state and UI
             currentMember = null;
             openChecklists.clear(); // Clear UI state on logout
 
-            appContainer.classList.add('hidden');
-            loginModal.classList.remove('hidden');
+            appContainer.classList.add('hidden'); // Hide main app
+            loginModal.classList.remove('hidden'); // Show login modal
             
+            // Clear login form fields
             document.getElementById('memberSelect').value = '';
             document.getElementById('memberCode').value = '';
             document.getElementById('loginError').textContent = '';
         }
 
+        /**
+         * Sets up a real-time listener for 'governance_actions' collection.
+         * Updates the `governanceActions` array and re-renders the UI on changes.
+         */
         function setupActionsListener() {
-            if (unsubscribeActions) unsubscribeActions();
+            if (unsubscribeActions) unsubscribeActions(); // Unsubscribe previous listener if exists
             const actionsRef = collection(db, 'governance_actions');
             unsubscribeActions = onSnapshot(query(actionsRef, orderBy('id')), snapshot => {
                 governanceActions = snapshot.docs.map(d => d.data());
-                renderActions();
-                if (currentMember === 'Admin') populateAdminSelects();
-                else renderMemberSummary();
+                renderActions(); // Re-render action cards
+                if (currentMember === 'Admin') populateAdminSelects(); // Update admin selects if admin
+                else renderMemberSummary(); // Update member summary if regular member
             }, err => {
                 console.error("Actions listener failed:", err);
-                alert("Error: Could not load voting actions. Check permissions and network.");
+                // Use a custom message box instead of alert()
+                showConfirmationPopup('Error: Could not load voting actions. Check permissions and network.', 'bg-red-500');
             });
         }
 
+        /**
+         * Sets up a real-time listener for the current member's individual votes.
+         * Updates `memberVotes` and re-renders actions and member summary.
+         */
         function setupMemberVotesListener() {
-            if (unsubscribeVotes) unsubscribeVotes();
+            if (unsubscribeVotes) unsubscribeVotes(); // Unsubscribe previous listener if exists
             const votesRef = collection(db, 'members_data', currentMember, 'individual_votes');
             unsubscribeVotes = onSnapshot(votesRef, snapshot => {
-                memberVotes = {};
+                memberVotes = {}; // Reset memberVotes cache
                 snapshot.forEach(d => { memberVotes[d.id] = d.data(); });
-                renderActions();
-                renderMemberSummary();
+                renderActions(); // Re-render action cards to reflect vote changes
+                renderMemberSummary(); // Update member's personal summary
             });
         }
 
+        /**
+         * Sets up real-time listeners for all regular members' votes.
+         * This data is used to calculate overall vote summaries for each action.
+         */
         function setupAllVotesListener() {
-            if (unsubscribeAllVotes) unsubscribeAllVotes();
-            allMemberVotes = {}; // Reset cache
+            if (unsubscribeAllVotes) unsubscribeAllVotes(); // Unsubscribe previous listener if exists
+            allMemberVotes = {}; // Reset cache for all votes
             const unsubscribes = regularMembersList.map(member => {
                 const votesRef = collection(db, 'members_data', member, 'individual_votes');
                 return onSnapshot(votesRef, snapshot => {
@@ -442,18 +535,25 @@
                         if (!allMemberVotes[d.id]) allMemberVotes[d.id] = {};
                         allMemberVotes[d.id][member] = d.data().vote;
                     });
-                    renderActions(); // Re-render when any vote changes
+                    renderActions(); // Re-render when any vote changes to update summaries
                 });
             });
+            // Store a function to unsubscribe all individual member vote listeners
             unsubscribeAllVotes = () => unsubscribes.forEach(unsub => unsub());
         }
         
         // --- Deadline & Timer Logic ---
+
+        /**
+         * Formats the time remaining until a deadline.
+         * @param {string} deadlineISO - ISO string of the deadline.
+         * @returns {object} An object containing formatted text, color, and status.
+         */
         function formatTimeRemaining(deadlineISO) {
             if (!deadlineISO) return { text: 'No deadline', color: 'text-gray-500', isPast: false, bgColor: 'bg-white' };
             const now = new Date();
             const deadline = new Date(deadlineISO);
-            const diff = deadline - now;
+            const diff = deadline - now; // Difference in milliseconds
 
             if (diff <= 0) return { text: 'Voting Closed', color: 'text-red-600 font-bold', isPast: true, bgColor: 'bg-gray-200' };
             
@@ -464,94 +564,125 @@
             let text = 'Closes in ';
             if (days >= 1) text += `${Math.floor(days)}d `;
             if (hours > 0) text += `${hours}h `;
+            // Only show minutes if less than a day remaining
             if (days < 1 && hours === 0) text += `${minutes}m`;
 
             const textColor = diff < (24 * 60 * 60 * 1000) ? 'text-orange-600' : 'text-gray-500';
             
             let bgColor;
             if (days < 5) {
-                bgColor = 'bg-red-50';
+                bgColor = 'bg-red-50'; // Red tint for urgent deadlines
             } else if (days <= 10) {
-                bgColor = 'bg-yellow-50';
+                bgColor = 'bg-yellow-50'; // Yellow tint for approaching deadlines
             } else {
-                bgColor = 'bg-green-50';
+                bgColor = 'bg-green-50'; // Green tint for ample time
             }
 
             return { text: text.trim(), color: textColor, isPast: false, bgColor };
         }
 
+        /**
+         * Automatically archives an action if its deadline has passed and it's still active.
+         * This function is called by the global timer for active actions.
+         * @param {object} action - The governance action object.
+         */
         async function autoArchiveAction(action) {
-            if (!action || action.status !== 'active') return;
-            console.log(`Auto-archiving action: ${action.id}`);
-            await updateDoc(doc(db, 'governance_actions', action.id), { status: 'archived' });
-            await logAuditEvent(action.id, 'ACTION_AUTO_ARCHIVED', { actionTitle: action.title });
+            if (!action || action.status !== 'active') return; // Only process active actions
+            const { isPast } = formatTimeRemaining(action.deadline);
+            if (isPast) {
+                console.log(`Auto-archiving action: ${action.id}`);
+                await updateDoc(doc(db, 'governance_actions', action.id), { status: 'archived' });
+                await logAuditEvent(action.id, 'ACTION_AUTO_ARCHIVED', { actionTitle: action.title });
+            }
         }
 
+        /**
+         * Starts a global timer that periodically updates the time remaining
+         * for active actions and triggers auto-archiving if deadlines are met.
+         */
         function startGlobalTimer() {
+            // Update every minute (60,000 ms)
             setInterval(() => {
                 governanceActions.forEach(action => {
-                    if (action.status !== 'active') return; // Only process timers for active actions
+                    // Only process timers for active actions
+                    if (action.status !== 'active') return; 
+
                     const card = document.querySelector(`.action-card[data-id="${action.id}"]`);
-                    if (!card) return;
+                    if (!card) return; // Card might not be rendered if it's not in the current view
 
                     const { text, color, isPast, bgColor } = formatTimeRemaining(action.deadline);
                     
+                    // Update timer text and color on the card
                     if (card.querySelector('.deadline-timer')) {
                         card.querySelector('.deadline-timer').textContent = text;
                         card.querySelector('.deadline-timer').className = `deadline-timer text-sm font-medium ${color}`;
                     }
                     
-                    card.classList.remove('bg-white', 'bg-green-50', 'bg-yellow-50', 'bg-red-50', 'bg-gray-200');
+                    // Update background color based on urgency
+                    card.classList.remove('bg-white', 'bg-green-50', 'bg-yellow-50', 'bg-red-50', 'bg-gray-200', 'bg-blue-50'); // Remove all possible previous bgs
                     card.classList.add(bgColor);
 
+                    // If deadline is past, disable vote buttons and potentially auto-archive
                     if (isPast) {
                         if (currentMember !== 'Admin') {
                             card.querySelectorAll('.vote-button').forEach(btn => btn.disabled = true);
-                            card.querySelector('.vote-button-group')?.classList.add('opacity-50');
+                            card.querySelector('.vote-button-group')?.classList.add('opacity-50'); // Visually dim buttons
                         } else {
-                            autoArchiveAction(action);
+                            autoArchiveAction(action); // Admin's timer triggers auto-archive
                         }
                     }
                 });
-            }, 60000);
+            }, 60000); // Run every 1 minute
         }
 
-        // --- Rendering ---
+        // --- Rendering Functions ---
+
+        /**
+         * Renders the governance actions based on the current view filter (`currentView`).
+         * Sorts active actions by deadline.
+         */
         function renderActions() {
-            actionsContainer.innerHTML = '';
+            actionsContainer.innerHTML = ''; // Clear existing actions
+            
+            // Filter actions based on current view and user role
             const actionsToRender = governanceActions.filter(action => {
-                const status = action.status || 'active'; // Default old actions to 'active'
+                const status = action.status || 'active'; // Default old actions to 'active' if status is missing
                 if (currentMember !== 'Admin' && status === 'draft') {
                     return false; // Non-admins never see drafts
                 }
                 return status === currentView;
             });
 
+            // Sort active actions by deadline (closest first)
             if (currentView === 'active') {
                 actionsToRender.sort((a, b) => {
                     const deadlineA = a.deadline ? new Date(a.deadline).getTime() : Infinity;
                     const deadlineB = b.deadline ? new Date(b.deadline).getTime() : Infinity;
+                    // Actions with no deadline (Infinity) will go to the end
                     if (deadlineA === Infinity && deadlineB === Infinity) return 0;
                     return deadlineA - deadlineB;
                 });
             }
 
+            // Display message if no actions found for the current view
             if (actionsToRender.length === 0) {
                 actionsContainer.innerHTML = `<div class="text-center p-8 bg-white rounded-2xl shadow-md"><p class="text-gray-500">No ${currentView} actions found.</p></div>`;
                 return;
             }
 
+            // Create and append a card for each action
             actionsToRender.forEach(action => {
                 const card = document.createElement('div');
                 let bgColor = 'bg-white';
                 if (action.status === 'active') {
                     bgColor = formatTimeRemaining(action.deadline).bgColor;
                 } else if (action.status === 'draft') {
-                    bgColor = 'bg-blue-50';
+                    bgColor = 'bg-blue-50'; // Specific background for drafts
                 }
                 card.className = `action-card rounded-2xl shadow-md p-6 ${bgColor}`;
-                card.dataset.id = action.id;
-                
+                card.dataset.id = action.id; // Store action ID on the card element
+
+                // Render content based on user role and action status
                 if (currentMember === 'Admin') {
                     card.classList.add('admin-action-card', 'cursor-pointer', 'hover:shadow-lg', 'transition-shadow', 'duration-200');
                     card.innerHTML = createAdminCardContent(action);
@@ -561,6 +692,7 @@
                 actionsContainer.appendChild(card);
             });
 
+            // Re-open previously open checklist accordions
             openChecklists.forEach(actionId => {
                 const card = document.querySelector(`.action-card[data-id="${actionId}"]`);
                 if (card) {
@@ -573,25 +705,63 @@
                 }
             });
 
-            attachCardEventListeners();
+            attachCardEventListeners(); // Attach event listeners to newly rendered cards
         }
         
+        /**
+         * Renders the member's personal voting summary (for regular members).
+         */
         function renderMemberSummary() {
-            if (currentMember === 'Admin' || !governanceActions.length) return;
+            if (currentMember === 'Admin' || !governanceActions.length) return; // Only for regular members with actions loaded
+            
             const summaryContent = document.getElementById('memberSummaryContent');
             const activeActions = governanceActions.filter(a => (a.status || 'active') === 'active');
+            
+            // Calculate total votes cast by the current member
             const totalVotes = Object.keys(memberVotes).length;
             const voteCounts = { yes: 0, no: 0, abstain: 0 };
-            Object.values(memberVotes).forEach(voteData => { const vote = voteData.vote; if (voteCounts[vote] !== undefined) voteCounts[vote]++; });
+            Object.values(memberVotes).forEach(voteData => {
+                const vote = voteData.vote;
+                if (voteCounts[vote] !== undefined) voteCounts[vote]++;
+            });
+            
+            // Calculate pending votes (active actions not yet voted on and not past deadline)
             let pendingVotes = 0;
-            activeActions.forEach(action => { const hasVoted = memberVotes.hasOwnProperty(action.id); const deadlinePassed = formatTimeRemaining(action.deadline).isPast; if (!hasVoted && !deadlinePassed) { pendingVotes++; } });
-            summaryContent.innerHTML = `<div class="p-4 bg-gray-50 rounded-lg"><p class="text-3xl font-bold text-blue-600">${pendingVotes}</p><p class="text-sm font-medium text-gray-600">Pending Votes</p></div><div class="p-4 bg-gray-50 rounded-lg"><p class="text-3xl font-bold text-gray-700">${totalVotes}</p><p class="text-sm font-medium text-gray-600">Total Votes Cast</p></div><div class="p-4 bg-gray-50 rounded-lg grid grid-cols-3 gap-1 text-center"><div><p class="text-xl font-bold text-green-600">${voteCounts.yes}</p><p class="text-xs font-medium text-gray-500">Yes</p></div><div><p class="text-xl font-bold text-red-600">${voteCounts.no}</p><p class="text-xs font-medium text-gray-500">No</p></div><div><p class="text-xl font-bold text-yellow-600">${voteCounts.abstain}</p><p class="text-xs font-medium text-gray-500">Abstain</p></div></div>`;
+            activeActions.forEach(action => {
+                const hasVoted = memberVotes.hasOwnProperty(action.id);
+                const deadlinePassed = formatTimeRemaining(action.deadline).isPast;
+                if (!hasVoted && !deadlinePassed) {
+                    pendingVotes++;
+                }
+            });
+
+            summaryContent.innerHTML = `
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-3xl font-bold text-blue-600">${pendingVotes}</p>
+                    <p class="text-sm font-medium text-gray-600">Pending Votes</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-3xl font-bold text-gray-700">${totalVotes}</p>
+                    <p class="text-sm font-medium text-gray-600">Total Votes Cast</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg grid grid-cols-3 gap-1 text-center">
+                    <div><p class="text-xl font-bold text-green-600">${voteCounts.yes}</p><p class="text-xs font-medium text-gray-500">Yes</p></div>
+                    <div><p class="text-xl font-bold text-red-600">${voteCounts.no}</p><p class="text-xs font-medium text-gray-500">No</p></div>
+                    <div><p class="text-xl font-bold text-yellow-600">${voteCounts.abstain}</p><p class="text-xs font-medium text-gray-500">Abstain</p></div>
+                </div>
+            `;
         }
 
+        /**
+         * Calculates the vote summary for a specific governance action.
+         * @param {string} actionId - The ID of the action.
+         * @returns {object} An object containing vote counts, quorum status, and council outcome.
+         */
         function getActionVoteSummary(actionId) {
-            const votes = allMemberVotes[actionId] || {};
+            const votes = allMemberVotes[actionId] || {}; // Get all recorded votes for this action
             let yes = 0, no = 0, abstain = 0;
             
+            // Tally votes from all members
             Object.values(votes).forEach(vote => {
                 if (vote === 'yes') yes++;
                 else if (vote === 'no') no++;
@@ -599,19 +769,24 @@
             });
             
             const totalVotesCast = yes + no + abstain;
-            const quorumMet = totalVotesCast >= QUORUM_REQUIRED;
+            const quorumMet = totalVotesCast >= QUORUM_REQUIRED; // Check if quorum is met
             
-            let councilVote = 'Pending';
-            if (yes > 0 || no > 0) {
+            let councilVote = 'Pending'; // Default outcome
+            if (yes > 0 || no > 0) { // If any 'yes' or 'no' votes exist
                 if (yes > no) councilVote = 'Yes';
                 else if (no > yes) councilVote = 'No';
-                else councilVote = 'Abstain';
+                else councilVote = 'Abstain'; // Tie or only abstain votes
             } else if (totalVotesCast > 0) {
-                councilVote = 'Abstain';
+                councilVote = 'Abstain'; // Only abstain votes, no yes/no
             }
             return { yes, no, abstain, total: totalVotesCast, quorumMet, councilVote };
         }
 
+        /**
+         * Generates HTML for displaying a vote summary block.
+         * @param {object} summary - The summary object from `getActionVoteSummary`.
+         * @returns {string} HTML string for the summary.
+         */
         function createSummaryHTML(summary) {
             return `
                 <div class="mt-4 pt-4 border-t border-gray-300">
@@ -626,14 +801,24 @@
             `;
         }
         
+        /**
+         * Creates the HTML content for a voter's action card (for active actions).
+         * Includes vote buttons, links, and optional checklist.
+         * @param {object} action - The governance action object.
+         * @returns {string} HTML string for the voter card.
+         */
         function createVoterCardContent(action) {
             const summary = getActionVoteSummary(action.id);
-            const currentVoteData = memberVotes[action.id];
-            const currentVote = currentVoteData?.vote;
-            const btnClass = (vote) => `vote-button btn ${currentVote === vote ? 'selected' : ''}`;
-            const { text, color, isPast } = formatTimeRemaining(action.deadline);
-            const areButtonsDisabled = isPast;
+            const currentVoteData = memberVotes[action.id]; // Get current member's vote data for this action
+            const currentVote = currentVoteData?.vote; // The actual vote ('yes', 'no', 'abstain')
             
+            // Helper to apply 'selected' class and appropriate button style
+            const btnClass = (vote) => `vote-button btn ${currentVote === vote ? 'selected' : ''}`;
+            
+            const { text, color, isPast } = formatTimeRemaining(action.deadline);
+            const areButtonsDisabled = isPast; // Disable buttons if deadline is past
+            
+            // Generate checklist HTML if `includeChecklist` is true for the action
             const checklistContainerHTML = action.includeChecklist ? `
                 <div class="mt-4 pt-4 border-t border-gray-200">
                     <div class="checklist-accordion-header cursor-pointer flex justify-between items-center text-gray-700 hover:text-blue-600">
@@ -643,9 +828,9 @@
                     <div class="checklist-accordion-content accordion-content">
                         ${Object.entries(CHECKLIST_ITEMS).map(([key, label]) => {
                             if (key.startsWith('section_')) {
-                                return `<h5 class="checklist-section-title">${label}</h5>`;
+                                return `<h5 class="checklist-section-title">${label}</h5>`; // Section title
                             }
-                            const isChecked = currentVoteData?.checklist?.[key] ?? false;
+                            const isChecked = currentVoteData?.checklist?.[key] ?? false; // Check if item is checked
                             return `
                                 <div class="checklist-item">
                                     <input type="checkbox" id="checklist-${action.id}-${key}" data-action-id="${action.id}" data-item-key="${key}" ${isChecked ? 'checked' : ''} ${areButtonsDisabled ? 'disabled' : ''}>
@@ -685,6 +870,12 @@
             `;
         }
         
+        /**
+         * Creates the HTML content for an admin's action card.
+         * Includes action details, status, and admin controls (publish/edit).
+         * @param {object} action - The governance action object.
+         * @returns {string} HTML string for the admin card.
+         */
         function createAdminCardContent(action) {
             const summary = getActionVoteSummary(action.id);
             const { text, color } = formatTimeRemaining(action.deadline);
@@ -728,14 +919,25 @@
             `;
         }
         
+        /**
+         * Creates the HTML content for an archived action card for regular members.
+         * Shows the member's past vote and the final summary.
+         * @param {object} action - The governance action object.
+         * @returns {string} HTML string for the archived voter card.
+         */
         function createArchivedVoterCardContent(action) {
             const summary = getActionVoteSummary(action.id);
-            const vote = memberVotes[action.id]?.vote || 'Did not vote';
-            const voteColorMap = { yes: 'text-green-600 bg-green-100', no: 'text-red-600 bg-red-100', abstain: 'text-gray-600 bg-gray-100', 'Did not vote': 'text-gray-500 bg-gray-100' };
+            const vote = memberVotes[action.id]?.vote || 'Did not vote'; // Get member's vote or 'Did not vote'
+            const voteColorMap = {
+                yes: 'text-green-600 bg-green-100',
+                no: 'text-red-600 bg-red-100',
+                abstain: 'text-yellow-600 bg-yellow-100', // Changed to yellow for abstain
+                'Did not vote': 'text-gray-600 bg-gray-100'
+            };
             return `
                 <div class="flex flex-col">
                     <div class="flex flex-col md:flex-row justify-between items-center">
-                         <div class="flex-grow">
+                        <div class="flex-grow">
                             <h3 class="text-xl font-bold text-gray-600">${action.title}</h3>
                             <p class="text-sm text-gray-500 font-mono">ID: ${action.id}</p>
                         </div>
@@ -752,111 +954,162 @@
         }
 
         // --- Event Handling ---
+
+        /**
+         * Attaches all necessary event listeners to the dynamically created action cards.
+         */
         function attachCardEventListeners() {
+            // Event listener for vote buttons (Yes, No, Abstain)
             document.querySelectorAll('.vote-button-group .vote-button').forEach(btn => btn.addEventListener('click', handleVoteClick));
+            
+            // Event listener for admin action cards (to view results or edit)
             document.querySelectorAll('.admin-action-card').forEach(card => {
                 card.addEventListener('click', (e) => {
+                    // Prevent opening modal if clicking on edit/publish buttons within the card
                     if (e.target.closest('.edit-action-btn') || e.target.closest('.publish-action-btn')) return;
+                    
                     const action = governanceActions.find(a => a.id === card.dataset.id);
+                    // If not a draft, open results modal on card click
                     if (action && action.status !== 'draft') {
                         handleViewResultsClick(e);
                     }
                 });
             });
+            
+            // Event listener for edit action buttons (admin only)
             document.querySelectorAll('.edit-action-btn').forEach(btn => btn.addEventListener('click', handleEditActionClick));
+            
+            // Event listener for publish action buttons (admin only, for drafts)
             document.querySelectorAll('.publish-action-btn').forEach(btn => btn.addEventListener('click', handlePublishClick));
+            
+            // Event listener for checklist accordion headers
             document.querySelectorAll('.checklist-accordion-header').forEach(header => {
                 header.addEventListener('click', () => {
                     const card = header.closest('.action-card');
                     if (!card) return;
                     const actionId = card.dataset.id;
-                    const content = header.nextElementSibling;
-                    const isOpen = content.classList.toggle('open');
-                    header.classList.toggle('open', isOpen);
+                    const content = header.nextElementSibling; // The accordion content div
+                    const isOpen = content.classList.toggle('open'); // Toggle 'open' class
+                    header.classList.toggle('open', isOpen); // Rotate chevron icon
+                    
+                    // Update the set of open checklists to preserve state on re-render
                     if (isOpen) openChecklists.add(actionId);
                     else openChecklists.delete(actionId);
                 });
             });
+            
+            // Event listener for checklist checkboxes
             document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(checkbox => {
                 checkbox.addEventListener('change', handleChecklistChange);
             });
         }
 
+        /**
+         * Handles a vote button click, saving the vote to Firestore.
+         * @param {Event} e - The click event.
+         */
         async function handleVoteClick(e) {
             const button = e.currentTarget;
-            if (button.disabled) return;
+            if (button.disabled) return; // Do nothing if button is disabled
+            
             const actionId = button.parentElement.dataset.actionId;
-            const vote = button.textContent.toLowerCase();
+            const vote = button.textContent.toLowerCase(); // 'yes', 'no', or 'abstain'
             const voteRef = doc(db, 'members_data', currentMember, 'individual_votes', actionId);
             
             try {
+                // Attempt to update an existing vote document
                 await updateDoc(voteRef, { vote: vote });
             } catch (err) {
+                // If the document doesn't exist, create it with the vote and an empty checklist
                 if (err.code === 'not-found') {
                     await setDoc(voteRef, { vote: vote, checklist: {} });
                 } else {
                     console.error("Error saving vote:", err);
-                    alert("Could not save your vote. Please try again.");
+                    // Use custom popup for error messages
+                    showConfirmationPopup("Could not save your vote. Please try again.", 'bg-red-500');
                     return;
                 }
             }
             
             try {
+                // Log the vote event to the audit log
                 const action = governanceActions.find(a => a.id === actionId);
                 await logAuditEvent(actionId, 'VOTE_CAST', { actionTitle: action.title, vote: vote });
-                const popup = document.getElementById('voteConfirmationPopup');
-                popup.textContent = 'Vote Registered!';
-                popup.classList.remove('opacity-0');
-                setTimeout(() => popup.classList.add('opacity-0'), 2000);
+                
+                // Show a temporary confirmation pop-up
+                showConfirmationPopup('Vote Registered!', 'bg-green-500');
             } catch (logErr) {
                 console.error("Error logging vote event:", logErr);
             }
         }
         
+        /**
+         * Handles changes to a checklist checkbox, updating the member's vote data in Firestore.
+         * @param {Event} e - The change event.
+         */
         async function handleChecklistChange(e) {
             const checkbox = e.currentTarget;
-            if (checkbox.disabled) return;
+            if (checkbox.disabled) return; // Do nothing if checkbox is disabled
+            
             const actionId = checkbox.dataset.actionId;
             const itemKey = checkbox.dataset.itemKey;
             const isChecked = checkbox.checked;
             const voteRef = doc(db, 'members_data', currentMember, 'individual_votes', actionId);
 
             try {
+                // Update the specific checklist item within the vote document
                 await updateDoc(voteRef, { [`checklist.${itemKey}`]: isChecked });
             } catch (err) {
-                 if (err.code === 'not-found') {
+                // If the vote document doesn't exist yet, create it with the checklist item
+                if (err.code === 'not-found') {
                     const initialChecklist = { [itemKey]: isChecked };
                     await setDoc(voteRef, { checklist: initialChecklist });
                 } else {
                     console.error("Error updating checklist:", err);
-                    alert("Could not save your checklist change. Please try again.");
-                    checkbox.checked = !isChecked;
+                    showConfirmationPopup("Could not save your checklist change. Please try again.", 'bg-red-500');
+                    checkbox.checked = !isChecked; // Revert checkbox state on error
                 }
             }
         }
         
+        /**
+         * Handles the click on an admin action card (or "View Results" cue),
+         * opening a modal with detailed vote results for that action.
+         * @param {Event} e - The click event.
+         */
         async function handleViewResultsClick(e) {
-            const actionId = e.currentTarget.dataset.id;
+            const actionId = e.currentTarget.dataset.id; // Get action ID from the card's dataset
             const action = governanceActions.find(a => a.id === actionId);
             if (!action) return;
+
             const resultsModal = document.getElementById('resultsModal');
             document.getElementById('resultsModalTitle').textContent = `Results for: ${action.title}`;
             const modalContent = document.getElementById('resultsModalContent');
-            modalContent.innerHTML = `<div class="text-center p-4 animate-pulse">Loading results...</div>`;
-            resultsModal.classList.remove('hidden');
-            const votes = allMemberVotes[actionId] || {};
+            modalContent.innerHTML = `<div class="text-center p-4 animate-pulse">Loading results...</div>`; // Show loading state
+            resultsModal.classList.remove('hidden'); // Show modal
+
+            const votes = allMemberVotes[actionId] || {}; // Get all cached votes for this action
             let votersHTML = '';
-            const voteColorMap = { yes: 'bg-green-100 text-green-800', no: 'bg-red-100 text-red-800', abstain: 'bg-yellow-100 text-yellow-800', unvoted: 'bg-gray-100 text-gray-500' };
+            const voteColorMap = {
+                yes: 'bg-green-100 text-green-800',
+                no: 'bg-red-100 text-red-800',
+                abstain: 'bg-yellow-100 text-yellow-800',
+                unvoted: 'bg-gray-100 text-gray-500'
+            };
             
+            // Generate HTML for individual member votes
             regularMembersList.forEach(member => {
                 const vote = votes[member] || 'unvoted';
                 votersHTML += `<div class="p-3 rounded-lg flex justify-between items-center ${voteColorMap[vote]}"><span class="font-medium">${member}</span><span class="font-bold uppercase text-xs">${vote}</span></div>`;
             });
             
-            const summary = getActionVoteSummary(actionId);
+            const summary = getActionVoteSummary(actionId); // Get overall summary
             const { text: deadlineText, color: deadlineColor, isPast } = formatTimeRemaining(action.deadline);
+            
+            // Format deadline display
             const deadlineHTML = action.deadline ? `<p class="text-center font-semibold ${deadlineColor}">${isPast ? deadlineText : `Ends: ${new Date(action.deadline).toLocaleString()}`}</p>` : '<p class="text-center text-gray-500">No deadline set</p>';
             
+            // Generate HTML for relevant links
             const linksHTML = `
                 <div class="mt-4 p-4 bg-gray-50 rounded-lg">
                     <h5 class="font-semibold text-md text-gray-700 mb-2">Relevant Links</h5>
@@ -868,6 +1121,7 @@
                 </div>
             `;
 
+            // Populate modal content
             modalContent.innerHTML = `
                 <div>
                     ${deadlineHTML}
@@ -888,12 +1142,18 @@
             `;
         }
         
+        /**
+         * Handles the click on the "Edit Action" button (admin only),
+         * populating the edit modal with current action data.
+         * @param {Event} e - The click event.
+         */
         function handleEditActionClick(e) {
-            e.stopPropagation();
+            e.stopPropagation(); // Prevent card click event from firing
             const actionId = e.currentTarget.dataset.actionId;
             const action = governanceActions.find(a => a.id === actionId);
             if (!action) return;
 
+            // Populate the edit modal fields
             document.getElementById('editActionId').value = action.id;
             document.getElementById('editActionTitle').value = action.title;
             document.getElementById('editGovToolLink').value = action.govToolLink || '';
@@ -901,32 +1161,39 @@
             document.getElementById('editWorkingDocLink').value = action.workingDocLink || '';
             document.getElementById('editIncludeChecklist').checked = action.includeChecklist ?? false;
             
+            // Populate deadline selector with current value
             populateEpochSelectors("#editActionDeadline", action.deadline);
 
-            editActionModal.classList.remove('hidden');
+            editActionModal.classList.remove('hidden'); // Show the edit modal
         }
 
+        /**
+         * Handles the click on the "Publish" button for a draft action (admin only),
+         * changing its status to 'active'.
+         * @param {Event} e - The click event.
+         */
         async function handlePublishClick(e) {
-            e.stopPropagation();
+            e.stopPropagation(); // Prevent card click event from firing
             const actionId = e.currentTarget.dataset.actionId;
             const action = governanceActions.find(a => a.id === actionId);
             if (!action) return;
 
+            // Show confirmation before publishing
             showConfirm("Confirm Publish", `Are you sure you want to publish "${action.title}"? It will become visible to all members.`, async () => {
                 try {
                     await updateDoc(doc(db, 'governance_actions', actionId), { status: 'active' });
                     await logAuditEvent(actionId, 'ACTION_PUBLISHED', { actionTitle: action.title });
-                    const popup = document.getElementById('voteConfirmationPopup');
-                    popup.textContent = 'Action Published!';
-                    popup.classList.remove('opacity-0');
-                    setTimeout(() => { popup.classList.add('opacity-0'); popup.textContent = 'Vote Registered!'; }, 2500);
+                    showConfirmationPopup('Action Published!', 'bg-green-500');
                 } catch (err) {
                     console.error("Error publishing action:", err);
-                    alert("Could not publish the action.");
+                    showConfirmationPopup("Could not publish the action.", 'bg-red-500');
                 }
             });
         }
 
+        /**
+         * Handles saving changes from the "Edit Governance Action" modal (admin only).
+         */
         async function handleSaveChanges() {
             const actionId = document.getElementById('editActionId').value;
             const newTitle = document.getElementById('editActionTitle').value.trim();
@@ -934,53 +1201,48 @@
             const newProposalLink = document.getElementById('editProposalLink').value.trim();
             const newWorkingDocLink = document.getElementById('editWorkingDocLink').value.trim();
             const includeChecklist = document.getElementById('editIncludeChecklist').checked;
-            const newDeadline = document.getElementById('editActionDeadline').value || null;
+            const newDeadline = document.getElementById('editActionDeadline').value || null; // Get selected deadline
             const errorEl = document.getElementById('editActionError');
 
-            errorEl.textContent = '';
+            errorEl.textContent = ''; // Clear previous errors
             if (!newTitle) {
                 errorEl.textContent = 'Action Title cannot be empty.';
                 return;
             }
 
-            const updatedData = { title: newTitle, govToolLink: newLink, proposalLink: newProposalLink, workingDocLink: newWorkingDocLink, deadline: newDeadline, includeChecklist: includeChecklist };
-            document.getElementById('saveEditActionBtn').disabled = true;
+            const updatedData = {
+                title: newTitle,
+                govToolLink: newLink,
+                proposalLink: newProposalLink,
+                workingDocLink: newWorkingDocLink,
+                deadline: newDeadline,
+                includeChecklist: includeChecklist
+            };
+            document.getElementById('saveEditActionBtn').disabled = true; // Disable button during save
 
             try {
                 const actionRef = doc(db, 'governance_actions', actionId);
                 await updateDoc(actionRef, updatedData);
                 await logAuditEvent(actionId, 'ACTION_EDITED', { newTitle });
-                const popup = document.getElementById('voteConfirmationPopup');
-                popup.textContent = 'Action updated successfully!';
-                popup.classList.remove('opacity-0');
-                setTimeout(() => { popup.classList.add('opacity-0'); popup.textContent = 'Vote Registered!'; }, 2500);
-                editActionModal.classList.add('hidden');
+                showConfirmationPopup('Action updated successfully!', 'bg-green-500');
+                editActionModal.classList.add('hidden'); // Hide modal on success
             } catch (err) {
                 console.error("Error updating action:", err);
                 errorEl.textContent = "Could not update action.";
             } finally {
-                document.getElementById('saveEditActionBtn').disabled = false;
+                document.getElementById('saveEditActionBtn').disabled = false; // Re-enable button
             }
         }
 
+        /**
+         * Downloads the full audit log as a CSV file.
+         */
         async function downloadAuditLogAsCSV() {
             const logQuery = query(collection(db, "audit_log"), orderBy("timestamp", "desc"));
             const logSnapshot = await getDocs(logQuery);
 
             if (logSnapshot.empty) {
-                const popup = document.getElementById('voteConfirmationPopup');
-                popup.textContent = 'No audit log data to download.';
-                popup.classList.remove('opacity-0', 'bg-green-500');
-                popup.classList.add('bg-yellow-500');
-                setTimeout(() => { 
-                    popup.classList.add('opacity-0');
-                    // Reset to default state after hiding
-                    setTimeout(() => {
-                        popup.classList.remove('bg-yellow-500');
-                        popup.classList.add('bg-green-500');
-                        popup.textContent = 'Vote Registered!'; 
-                    }, 500);
-                }, 3000);
+                showConfirmationPopup('No audit log data to download.', 'bg-yellow-500');
                 return;
             }
 
@@ -994,67 +1256,104 @@
                 const actor = `"${log.actor}"`;
                 const type = `"${log.type}"`;
                 const actionId = `"${log.actionId}"`;
+                // Format details object into a readable string for CSV
                 const details = `"${Object.entries(log.details).map(([k,v]) => `${k}: ${v}`).join('; ')}"`;
                 csvContent += [time, actor, type, actionId, details].join(",") + "\r\n";
             });
 
+            // Create a temporary link to trigger download
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
             link.setAttribute("download", `full-audit-log.csv`);
             document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link);
+            document.body.removeChild(link); // Clean up the temporary link
         }
 
-        // --- Admin Functions ---
-        function populateEpochSelectors(selector, defaultValue) {
+        /**
+         * Displays a temporary confirmation pop-up message.
+         * @param {string} message - The message to display.
+         * @param {string} bgColorClass - Tailwind CSS background color class (e.g., 'bg-green-500', 'bg-red-500').
+         */
+        function showConfirmationPopup(message, bgColorClass) {
+            const popup = document.getElementById('voteConfirmationPopup');
+            popup.textContent = message;
+            popup.classList.remove('opacity-0', 'bg-green-500', 'bg-red-500', 'bg-yellow-500'); // Remove all previous states
+            popup.classList.add(bgColorClass);
+            popup.classList.remove('opacity-0');
+
+            setTimeout(() => {
+                popup.classList.add('opacity-0');
+                // Reset to default state after hiding
+                setTimeout(() => {
+                    popup.classList.remove('bg-green-500', 'bg-red-500', 'bg-yellow-500');
+                    popup.classList.add('bg-green-500'); // Default back to green
+                    popup.textContent = 'Vote Registered!'; // Default text
+                }, 500); // Allow transition to complete before resetting background/text
+            }, 2500); // Display for 2.5 seconds
+        }
+
+        // --- Admin Specific Functions ---
+
+        /**
+         * Populates a select element with epoch-based deadline options.
+         * Calculates future epoch end times based on a reference date.
+         * @param {string} selector - CSS selector for the select element.
+         * @param {string} [defaultValue=null] - The ISO string of the default selected value.
+         */
+        function populateEpochSelectors(selector, defaultValue = null) {
             const selectEl = document.querySelector(selector);
             if (!selectEl) return;
 
-            // --- Date Generation ---
+            // --- Date Generation Logic ---
             const epochData = [];
-            const refDate = new Date(Date.UTC(2025, 6, 13, 21, 45, 0)); // July 13, 2025, 21:45 UTC
+            // Reference date: July 13, 2025, 21:45 UTC, corresponds to Epoch 569
+            const refDate = new Date(Date.UTC(2025, 6, 13, 21, 45, 0)); 
             const refEpoch = 569;
 
-            // Calculate start date for Epoch 532
+            // Calculate start date for Epoch 532 (arbitrary past epoch to ensure enough options)
             const startEpoch = 532;
             const epochDiff = refEpoch - startEpoch;
+            // Each epoch is 5 days
             const startDate = new Date(refDate.getTime() - epochDiff * 5 * 24 * 60 * 60 * 1000);
 
-            // Generate epochs from 532 up to a few years in the future
+            // Generate epochs up to 5 years in the future from current year
             const endYear = new Date().getUTCFullYear() + 5;
-            const finalDate = new Date(Date.UTC(endYear, 0, 1));
-            
+            const finalDate = new Date(Date.UTC(endYear, 0, 1)); // Jan 1st of end year
+
             let currentDate = startDate;
             let currentEpochNum = startEpoch;
 
             while (currentDate < finalDate) {
+                // Format date string for display
                 const dateString = new Intl.DateTimeFormat('en-US', {
                     weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
                     hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false
-                }).format(currentDate).replace(',', '');
+                }).format(currentDate).replace(',', ''); // Remove comma after weekday
 
                 epochData.push({
                     iso: currentDate.toISOString(),
                     text: `${dateString} UTC (End of Epoch ${currentEpochNum})`
                 });
 
-                // Move to the next epoch
+                // Move to the next epoch (add 5 days)
                 currentDate = new Date(currentDate.getTime() + 5 * 24 * 60 * 60 * 1000);
                 currentEpochNum++;
             }
 
             // --- Find Default Selection ---
             const now = new Date();
+            // Find the first epoch that is in the future
             let currentEpochIndex = epochData.findIndex(epoch => new Date(epoch.iso) > now);
             if (currentEpochIndex === -1) currentEpochIndex = epochData.length - 1; // Default to last if all are in the past
 
+            // Select an epoch roughly 30 days (6 epochs) in the future as a default
             const defaultSelectionIndex = Math.min(currentEpochIndex + 6, epochData.length - 1);
             const defaultISO = epochData[defaultSelectionIndex].iso;
 
             // --- Populate Selector ---
-            selectEl.innerHTML = '<option value="">-- No Deadline --</option>';
+            selectEl.innerHTML = '<option value="">-- No Deadline --</option>'; // Option for no deadline
 
             epochData.forEach(epoch => {
                 const option = document.createElement('option');
@@ -1065,31 +1364,39 @@
 
             // --- Set Value ---
             if (defaultValue) {
-                selectEl.value = defaultValue;
+                selectEl.value = defaultValue; // Set to provided default value
             } else {
-                selectEl.value = defaultISO;
+                selectEl.value = defaultISO; // Set to calculated default
             }
         }
 
+        /**
+         * Populates the admin's action management select dropdown with current governance actions.
+         * Preserves previously selected options.
+         */
         function populateAdminSelects() {
             const manageSelect = document.getElementById('manageActionSelect');
-            const selectedValues = Array.from(manageSelect.selectedOptions).map(opt => opt.value);
+            const selectedValues = Array.from(manageSelect.selectedOptions).map(opt => opt.value); // Get currently selected options
             
-            manageSelect.innerHTML = '';
+            manageSelect.innerHTML = ''; // Clear existing options
 
             governanceActions.forEach(action => {
                 const option = document.createElement('option');
                 option.value = action.id;
-                option.textContent = `${action.title} (${action.status || 'active'})`;
+                option.textContent = `${action.title} (${action.status || 'active'})`; // Display title and status
                 if (selectedValues.includes(action.id)) {
-                    option.selected = true;
+                    option.selected = true; // Re-select previously selected options
                 }
                 manageSelect.appendChild(option);
             });
         }
         
+        /**
+         * Sets up the admin controls for managing member login codes.
+         */
         function setupAdminAccessControls() {
             const container = document.getElementById('userAccessControls');
+            // Inject HTML for member selection and code management
             container.innerHTML = `
                 <label for="admin-member-select" class="font-medium text-sm text-gray-600">Select Member to Manage</label>
                 <select id="admin-member-select" class="w-full mt-1"></select>
@@ -1107,15 +1414,18 @@
             
             const memberSelect = document.getElementById('admin-member-select');
             memberSelect.innerHTML = '<option value="">-- Select Member --</option>';
+            // Populate dropdown with all members (including Admin)
             members.forEach(m => memberSelect.innerHTML += `<option value="${m}">${m}</option>`);
 
-            let memberCodes = {};
-            if (unsubscribeLoginCodes) unsubscribeLoginCodes();
+            let memberCodes = {}; // Cache for login codes
+            if (unsubscribeLoginCodes) unsubscribeLoginCodes(); // Unsubscribe previous listener
+            // Listen for real-time updates to login codes
             unsubscribeLoginCodes = onSnapshot(collection(db, 'login_codes'), snapshot => {
                 snapshot.forEach(doc => { memberCodes[doc.id] = doc.data(); });
-                updateSelectedMemberStatus();
+                updateSelectedMemberStatus(); // Update status display when codes change
             });
 
+            // Function to update the displayed status of the selected member's code
             const updateSelectedMemberStatus = () => {
                 const selectedMember = memberSelect.value;
                 const statusEl = document.getElementById('selected-member-code-status');
@@ -1130,27 +1440,32 @@
                 }
             };
             
+            // Event listener for member selection change
             memberSelect.addEventListener('change', () => {
                 const controls = document.getElementById('selected-member-controls');
                 if (memberSelect.value) {
-                    controls.classList.remove('hidden');
+                    controls.classList.remove('hidden'); // Show controls if a member is selected
                     document.getElementById('set-selected-member-code-btn').dataset.member = memberSelect.value;
                     updateSelectedMemberStatus();
                 } else {
-                    controls.classList.add('hidden');
+                    controls.classList.add('hidden'); // Hide controls if no member selected
                 }
             });
 
             document.getElementById('set-selected-member-code-btn').addEventListener('click', handleSetCode);
         }
 
+        /**
+         * Handles setting or resetting a member's login code by an admin.
+         * @param {Event} e - The click event.
+         */
         async function handleSetCode(e) {
             const memberName = e.currentTarget.dataset.member;
             const input = document.getElementById('selected-member-code-input');
             const newCode = input.value.trim();
 
             if (!memberName || !newCode) {
-                alert('Please select a member and enter a code.');
+                showConfirmationPopup('Please select a member and enter a code.', 'bg-red-500');
                 return;
             }
 
@@ -1158,21 +1473,22 @@
             e.currentTarget.textContent = 'Setting...';
 
             try {
+                // Set the new code in the 'login_codes' collection
                 await setDoc(doc(db, "login_codes", memberName), { code: newCode });
-                input.value = '';
-                const popup = document.getElementById('voteConfirmationPopup');
-                popup.textContent = `Code for ${memberName} updated!`;
-                popup.classList.remove('opacity-0');
-                setTimeout(() => { popup.classList.add('opacity-0'); popup.textContent = 'Vote Registered!'; }, 2500);
+                input.value = ''; // Clear input field
+                showConfirmationPopup(`Code for ${memberName} updated!`, 'bg-green-500');
             } catch (err) {
                 console.error("Error setting code:", err);
-                alert(`Could not set code for ${memberName}.`);
+                showConfirmationPopup(`Could not set code for ${memberName}.`, 'bg-red-500');
             } finally {
                 e.currentTarget.disabled = false;
                 e.currentTarget.textContent = 'Set/Reset';
             }
         }
 
+        /**
+         * Handles a regular member changing their own login code.
+         */
         async function handleSetOwnCode() {
             const newCodeInput = document.getElementById('newCodeInput');
             const confirmCodeInput = document.getElementById('confirmCodeInput');
@@ -1181,7 +1497,7 @@
             const newCode = newCodeInput.value;
             const confirmCode = confirmCodeInput.value;
             
-            errorEl.textContent = '';
+            errorEl.textContent = ''; // Clear previous errors
 
             if (!newCode || !confirmCode) {
                 errorEl.textContent = 'Please fill out both fields.';
@@ -1195,15 +1511,13 @@
             document.getElementById('saveChangeCodeBtn').disabled = true;
 
             try {
+                // Update the member's code in Firestore
                 await setDoc(doc(db, "login_codes", currentMember), { code: newCode });
                 
-                const popup = document.getElementById('voteConfirmationPopup');
-                popup.textContent = 'Code changed successfully!';
-                popup.classList.remove('opacity-0');
-                setTimeout(() => { popup.classList.add('opacity-0'); popup.textContent = 'Vote Registered!'; }, 2500);
+                showConfirmationPopup('Code changed successfully!', 'bg-green-500');
 
-                changeCodeModal.classList.add('hidden');
-                newCodeInput.value = '';
+                changeCodeModal.classList.add('hidden'); // Hide modal
+                newCodeInput.value = ''; // Clear fields
                 confirmCodeInput.value = '';
 
             } catch (err) {
@@ -1214,40 +1528,55 @@
             }
         }
 
+        /**
+         * Logs an event to the 'audit_log' collection in Firestore.
+         * @param {string} actionId - The ID of the governance action related to the event.
+         * @param {string} type - The type of event (e.g., 'VOTE_CAST', 'ACTION_CREATED').
+         * @param {object} details - An object containing additional details about the event.
+         */
         async function logAuditEvent(actionId, type, details) {
             try {
                 await addDoc(collection(db, "audit_log"), {
                     actionId,
                     type,
                     details,
-                    timestamp: serverTimestamp(),
-                    actor: currentMember
+                    timestamp: serverTimestamp(), // Use server timestamp for consistency
+                    actor: currentMember // Log the member who performed the action
                 });
             } catch (err) {
                 console.error("Error writing to audit log:", err);
             }
         }
 
+        /**
+         * Sets up a real-time listener for the audit log and renders it with pagination.
+         * (Admin only feature)
+         */
         function setupAdminActivityListener() {
             const feedContainer = document.getElementById('recentActivityFeed');
             const paginationContainer = document.getElementById('activityPagination');
             
+            // Function to fetch and render a specific page of the audit log
             const fetchAndRenderPage = async (pageIndex) => {
-                const lastVisible = activityLogPageSnapshots[pageIndex - 1] || null;
+                const lastVisible = activityLogPageSnapshots[pageIndex - 1] || null; // Get the last document from the previous page
                 let q;
                 if (lastVisible) {
+                    // Query for the next page, starting after the last document of the previous page
                     q = query(collection(db, "audit_log"), orderBy("timestamp", "desc"), startAfter(lastVisible), limit(25));
                 } else {
+                    // Query for the first page
                     q = query(collection(db, "audit_log"), orderBy("timestamp", "desc"), limit(25));
                 }
 
                 const snapshot = await getDocs(q);
                 
+                // If no documents on this page and it's not the first page, revert to previous page
                 if (snapshot.empty && pageIndex > 0) {
                     currentActivityLogPage--;
                     return;
                 }
                 
+                // Store the last document of the current page for next page pagination
                 activityLogPageSnapshots[pageIndex] = snapshot.docs[snapshot.docs.length - 1];
 
                 if (snapshot.empty) {
@@ -1256,10 +1585,12 @@
                     return;
                 }
 
+                // Render activity log entries
                 feedContainer.innerHTML = snapshot.docs.map(d => {
                     const log = d.data();
                     const time = log.timestamp ? log.timestamp.toDate().toLocaleTimeString() : 'N/A';
                     let description = '';
+                    // Generate descriptive text based on event type
                     switch(log.type) {
                         case 'ACTION_CREATED': description = `<strong>${log.actor}</strong> created action: <em>${log.details.title}</em>`; break;
                         case 'ACTION_PUBLISHED': description = `<strong>${log.actor}</strong> published action: <em>${log.details.actionTitle}</em>`; break;
@@ -1273,32 +1604,57 @@
                     return `<div class="p-2 border-b border-gray-100"><p class="font-mono text-xs text-gray-500">${time}</p><p>${description}</p></div>`;
                 }).join('');
 
+                // Render pagination buttons
                 paginationContainer.innerHTML = `
                     <button id="prevActivityPage" class="btn btn-secondary btn-sm" ${pageIndex === 0 ? 'disabled' : ''}>Previous</button>
                     <span class="p-2 text-sm font-medium">Page ${pageIndex + 1}</span>
                     <button id="nextActivityPage" class="btn btn-secondary btn-sm" ${snapshot.docs.length < 25 ? 'disabled' : ''}>Next</button>
                 `;
 
-                document.getElementById('prevActivityPage')?.addEventListener('click', () => { if (currentActivityLogPage > 0) { currentActivityLogPage--; fetchAndRenderPage(currentActivityLogPage); } });
-                document.getElementById('nextActivityPage')?.addEventListener('click', () => { currentActivityLogPage++; fetchAndRenderPage(currentActivityLogPage); });
+                // Add event listeners for pagination buttons
+                document.getElementById('prevActivityPage')?.addEventListener('click', () => {
+                    if (currentActivityLogPage > 0) {
+                        currentActivityLogPage--;
+                        fetchAndRenderPage(currentActivityLogPage);
+                    }
+                });
+                document.getElementById('nextActivityPage')?.addEventListener('click', () => {
+                    // Only increment if there are more documents to fetch
+                    if (snapshot.docs.length === 25) { 
+                        currentActivityLogPage++;
+                        fetchAndRenderPage(currentActivityLogPage);
+                    }
+                });
             };
 
+            // Initial fetch and render of the first page
             fetchAndRenderPage(0);
         }
 
         // --- CSV Import Logic ---
+
+        /**
+         * Parses CSV text into an array of objects.
+         * Assumes the first row is headers.
+         * @param {string} csvText - The raw CSV string.
+         * @returns {Array<object>} An array of objects, where each object represents a row.
+         */
         function parseCSV(csvText) {
             const lines = csvText.trim().split(/\r\n|\n/);
-            if (lines.length < 2) return [];
+            if (lines.length < 2) return []; // Need at least header and one data row
+            
             const headers = lines[0].split(',').map(h => h.trim());
             const rows = [];
+            
             for (let i = 1; i < lines.length; i++) {
-                if (!lines[i]) continue;
-                const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, '')); // Basic handling for quoted fields
+                if (!lines[i]) continue; // Skip empty lines
+                // Basic handling for quoted fields: remove leading/trailing quotes
+                const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, '')); 
+                
                 if (values.length > 0) {
                     const row = {};
                     headers.forEach((header, index) => {
-                        row[header] = values[index] || '';
+                        row[header] = values[index] || ''; // Assign value, default to empty string if missing
                     });
                     rows.push(row);
                 }
@@ -1306,6 +1662,9 @@
             return rows;
         }
 
+        /**
+         * Handles the CSV file import, parsing the data and adding/updating governance actions.
+         */
         async function handleCsvImport() {
             const fileInput = document.getElementById('csvFileInput');
             const statusEl = document.getElementById('importStatus');
@@ -1318,7 +1677,7 @@
 
             const file = fileInput.files[0];
             statusEl.textContent = 'Reading file...';
-            importBtn.disabled = true;
+            importBtn.disabled = true; // Disable button during import
 
             const reader = new FileReader();
             reader.onload = async (e) => {
@@ -1334,15 +1693,16 @@
                     }
 
                     statusEl.textContent = `Validating ${actionsToImport.length} actions...`;
-                    const batch = writeBatch(db);
+                    const batch = writeBatch(db); // Use a Firestore batch for efficient writes
 
                     for (const actionData of actionsToImport) {
                         if (!actionData.id || !actionData.title) {
                             console.warn('Skipping row due to missing id or title:', actionData);
-                            continue;
+                            continue; // Skip rows that don't have required fields
                         }
                         
                         const actionRef = doc(db, 'governance_actions', actionData.id.trim());
+                        // Parse deadline and checklist values
                         const deadlineValue = actionData.deadline && !isNaN(new Date(actionData.deadline)) ? new Date(actionData.deadline).toISOString() : null;
                         const includeChecklistValue = actionData.includeChecklist ? actionData.includeChecklist.toUpperCase() === 'TRUE' : false;
 
@@ -1354,74 +1714,90 @@
                             workingDocLink: actionData.workingDocLink || '',
                             deadline: deadlineValue,
                             includeChecklist: includeChecklistValue,
-                            status: 'draft'
+                            status: 'draft' // Imported actions are always drafts initially
                         };
-                        batch.set(actionRef, newAction);
+                        batch.set(actionRef, newAction); // Add to batch
                         importedCount++;
                     }
 
                     if (importedCount > 0) {
-                        await batch.commit();
+                        await batch.commit(); // Commit all batched writes
                         await logAuditEvent('N/A', 'BULK_IMPORT', { count: importedCount });
                         statusEl.textContent = `Successfully imported ${importedCount} actions as drafts.`;
                     } else {
                         statusEl.textContent = 'No actions imported. Check CSV for required fields.';
                     }
-                    fileInput.value = '';
-
+                    fileInput.value = ''; // Clear file input
                 } catch (error) {
                     console.error('Error during CSV import:', error);
                     statusEl.textContent = 'An error occurred during import. Check console.';
                 } finally {
-                    importBtn.disabled = false;
+                    importBtn.disabled = false; // Re-enable button
                 }
             };
             reader.onerror = () => { statusEl.textContent = 'Error reading the file.'; importBtn.disabled = false; };
-            reader.readAsText(file);
+            reader.readAsText(file); // Read file content as text
         }
 
-        // --- Initial Load ---
+        // --- Initial Application Load and Event Listeners Setup ---
+
+        // This block runs when the window has fully loaded
         window.addEventListener('load', () => {
             const memberSelect = document.getElementById('memberSelect');
             memberSelect.innerHTML = '<option value="">-- Select Member --</option>';
             members.forEach(m => { memberSelect.innerHTML += `<option value="${m}">${m}</option>`});
 
+            // Firebase Auth state change listener
             onAuthStateChanged(auth, async (user) => {
-                if (isLoggingIn) return;
+                if (isLoggingIn) return; // Prevent re-entry if already in login process
                 if (user) {
+                    // If user is logged in (even anonymously), try to retrieve their member name from session
                     const sessionRef = doc(db, 'sessions', user.uid);
                     const sessionDoc = await getDoc(sessionRef).catch(err => { console.error("Failed to get session doc:", err); return null; });
-                    if (sessionDoc && sessionDoc.exists()) initializeAppForMember(sessionDoc.data().memberName);
-                    else await handleLogout();
+                    if (sessionDoc && sessionDoc.exists()) {
+                        initializeAppForMember(sessionDoc.data().memberName); // Initialize app with stored member name
+                    } else {
+                        // If no session found, force logout to show login modal
+                        await handleLogout();
+                    }
                 } else {
+                    // If no user is logged in, show login modal
                     appContainer.classList.add('hidden');
                     loginModal.classList.remove('hidden');
                 }
             });
 
-            // Login Listeners
+            // --- Login Listeners ---
             logoutBtn.addEventListener('click', handleLogout);
             document.getElementById('loginBtn').addEventListener('click', async () => {
                 const selectedMember = document.getElementById('memberSelect').value;
                 const code = document.getElementById('memberCode').value.trim();
                 const loginError = document.getElementById('loginError');
-                loginError.textContent = '';
-                if (!selectedMember || !code) return loginError.textContent = 'Please select a member and enter a code.';
+                loginError.textContent = ''; // Clear previous errors
+
+                if (!selectedMember || !code) {
+                    return loginError.textContent = 'Please select a member and enter a code.';
+                }
                 
-                isLoggingIn = true;
+                isLoggingIn = true; // Set flag to indicate login in progress
                 document.getElementById('loginBtn').disabled = true;
                 loginError.textContent = 'Verifying...';
 
                 try {
                     let currentUser = auth.currentUser;
-                    if (!currentUser) currentUser = (await signInAnonymously(auth)).user;
+                    // If no user is currently logged in, sign in anonymously
+                    if (!currentUser) {
+                        currentUser = (await signInAnonymously(auth)).user;
+                    }
                     
                     const codeRef = doc(db, 'login_codes', selectedMember);
                     const codeDoc = await getDoc(codeRef);
 
+                    // Verify the entered code against the stored code
                     if (codeDoc.exists() && codeDoc.data().code === code) {
+                        // Store the member name in a session document linked to the anonymous user ID
                         await setDoc(doc(db, 'sessions', currentUser.uid), { memberName: selectedMember });
-                        initializeAppForMember(selectedMember);
+                        initializeAppForMember(selectedMember); // Initialize app for the authenticated member
                     } else {
                         loginError.textContent = 'Invalid member or code.';
                     }
@@ -1429,38 +1805,55 @@
                     console.error("Login failed:", error);
                     loginError.textContent = 'Login failed. Check console, Firestore rules, and browser extensions.';
                 } finally {
-                    isLoggingIn = false;
+                    isLoggingIn = false; // Reset login flag
                     document.getElementById('loginBtn').disabled = false;
-                    if(loginError.textContent === 'Verifying...') loginError.textContent = '';
+                    if(loginError.textContent === 'Verifying...') loginError.textContent = ''; // Clear "Verifying..." if no other error
                 }
             });
-            document.getElementById('memberCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('loginBtn').click(); } });
+            // Allow pressing Enter in the code field to trigger login
+            document.getElementById('memberCode').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault(); // Prevent default form submission
+                    document.getElementById('loginBtn').click(); // Trigger login button click
+                }
+            });
 
-            // Modals & Toggles
+            // --- Modals & Toggles ---
             changeCodeBtn.addEventListener('click', () => changeCodeModal.classList.remove('hidden'));
             document.getElementById('cancelChangeCodeBtn').addEventListener('click', () => changeCodeModal.classList.add('hidden'));
             document.getElementById('saveChangeCodeBtn').addEventListener('click', handleSetOwnCode);
             document.getElementById('cancelEditActionBtn').addEventListener('click', () => editActionModal.classList.add('hidden'));
             document.getElementById('saveEditActionBtn').addEventListener('click', handleSaveChanges);
-            viewToggle.addEventListener('click', e => { if(e.target.matches('.view-toggle-btn')) { currentView = e.target.dataset.view; document.querySelectorAll('.view-toggle-btn').forEach(btn => btn.classList.remove('active')); e.target.classList.add('active'); renderActions(); } });
             
-            // Admin Listeners
-            const showConfirm = (title, message, onConfirm) => {
-                document.getElementById('confirmModalTitle').textContent = title;
-                document.getElementById('confirmMessage').textContent = message;
-                document.getElementById('confirmationModal').classList.remove('hidden');
-                const confirmBtn = document.getElementById('confirmActionBtn');
-                const newConfirmBtn = confirmBtn.cloneNode(true);
-                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-                newConfirmBtn.onclick = () => { document.getElementById('confirmationModal').classList.add('hidden'); onConfirm(); };
-            };
+            // View toggle buttons (Active, Drafts, Archive)
+            viewToggle.addEventListener('click', e => {
+                if(e.target.matches('.view-toggle-btn')) {
+                    currentView = e.target.dataset.view; // Update current view
+                    document.querySelectorAll('.view-toggle-btn').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active'); // Set active class for selected button
+                    renderActions(); // Re-render actions based on new view
+                }
+            });
+            
+            // --- Admin Listeners ---
             document.getElementById('cancelConfirmBtn').onclick = () => document.getElementById('confirmationModal').classList.add('hidden');
             
-            document.getElementById('adminAccordionHeader').addEventListener('click', () => { document.getElementById('adminAccordionContent').classList.toggle('open'); document.getElementById('adminAccordionHeader').classList.toggle('open'); });
+            // Admin panel accordion toggle
+            document.getElementById('adminAccordionHeader').addEventListener('click', () => {
+                document.getElementById('adminAccordionContent').classList.toggle('open');
+                document.getElementById('adminAccordionHeader').classList.toggle('open');
+            });
+            
+            // Close results modal
             document.getElementById('closeResultsModalBtn').addEventListener('click', () => document.getElementById('resultsModal').classList.add('hidden'));
+            
+            // Download audit log
             document.getElementById('downloadAuditLogBtn').addEventListener('click', downloadAuditLogAsCSV);
+            
+            // CSV import button
             document.getElementById('importCsvBtn').addEventListener('click', handleCsvImport);
 
+            // Add new action button
             document.getElementById('addActionButton').addEventListener('click', async () => {
                 const id = document.getElementById('newActionIdInput').value.trim();
                 const title = document.getElementById('newActionTitle').value.trim();
@@ -1469,23 +1862,38 @@
                 const workingDocLink = document.getElementById('newWorkingDocLink').value.trim();
                 const includeChecklist = document.getElementById('newIncludeChecklist').checked;
                 const isDraft = document.getElementById('saveAsDraft').checked;
-                const deadline = document.getElementById('newActionDeadline').value || null;
+                const deadline = document.getElementById('newActionDeadline').value || null; // Get selected deadline value
                 const statusEl = document.getElementById('actionManagementStatus');
+                
                 if (!id || !title) return statusEl.textContent = "ID and Title are required.";
+                
                 statusEl.textContent = "Adding...";
                 try {
-                    await setDoc(doc(db, 'governance_actions', id), { id, title, govToolLink: link, proposalLink, workingDocLink, status: isDraft ? 'draft' : 'active', deadline, includeChecklist });
-                    await logAuditEvent(id, 'ACTION_CREATED', { title });
+                    // Add new governance action to Firestore
+                    await setDoc(doc(db, 'governance_actions', id), {
+                        id,
+                        title,
+                        govToolLink: link,
+                        proposalLink,
+                        workingDocLink,
+                        status: isDraft ? 'draft' : 'active', // Set status based on 'Save as Draft' checkbox
+                        deadline,
+                        includeChecklist
+                    });
+                    await logAuditEvent(id, 'ACTION_CREATED', { title }); // Log the creation
                     statusEl.textContent = `Action added.`;
+                    // Clear input fields after successful addition
                     ['newActionIdInput', 'newActionTitle', 'newGovToolLink', 'newProposalLink', 'newWorkingDocLink'].forEach(elId => document.getElementById(elId).value = '');
                     document.getElementById('newIncludeChecklist').checked = false;
                     document.getElementById('saveAsDraft').checked = false;
-                    populateEpochSelectors("#newActionDeadline");
+                    populateEpochSelectors("#newActionDeadline"); // Reset deadline selector
                 } catch(e) {
                     statusEl.textContent = `Error: ${e.message}`;
+                    console.error("Error adding new action:", e);
                 }
             });
             
+            // Enable/disable archive button based on selection
             document.getElementById('manageActionSelect').addEventListener('change', (e) => {
                 const selectedOptions = Array.from(e.target.selectedOptions);
                 const archiveBtn = document.getElementById('archiveActionButton');
@@ -1493,6 +1901,7 @@
                     archiveBtn.disabled = true;
                     return;
                 }
+                // Disable archive button if any selected action is already archived
                 const isAnyArchived = selectedOptions.some(opt => {
                     const action = governanceActions.find(a => a.id === opt.value);
                     return action && action.status === 'archived';
@@ -1500,6 +1909,7 @@
                 archiveBtn.disabled = isAnyArchived;
             });
 
+            // Archive selected actions button
             document.getElementById('archiveActionButton').addEventListener('click', () => {
                 const selectedOptions = Array.from(document.getElementById('manageActionSelect').selectedOptions);
                 const selectedIds = selectedOptions.map(opt => opt.value);
@@ -1514,23 +1924,25 @@
                 const actionTitles = selectedOptions.map(opt => `"${opt.textContent.split(' (')[0]}"`).join(', ');
                 showConfirm(`Confirm Archive (${selectedIds.length})`, `Are you sure you want to archive these actions: ${actionTitles}?`, async () => {
                     statusEl.textContent = 'Archiving...';
-                    const batch = writeBatch(db);
+                    const batch = writeBatch(db); // Use batch for multiple updates
                     selectedIds.forEach(id => {
                         const actionRef = doc(db, 'governance_actions', id);
-                        batch.update(actionRef, { status: 'archived' });
+                        batch.update(actionRef, { status: 'archived' }); // Set status to archived
                     });
-                    await batch.commit();
-
+                    await batch.commit(); // Commit the batch
+                    
+                    // Log each archived action
                     const logPromises = selectedIds.map(id => {
                         const action = governanceActions.find(a => a.id === id);
                         return logAuditEvent(id, 'ACTION_ARCHIVED', { actionTitle: action.title });
                     });
-                    await Promise.all(logPromises);
+                    await Promise.all(logPromises); // Wait for all logs to be written
                     
                     statusEl.textContent = `${selectedIds.length} action(s) archived.`;
                 });
             });
 
+            // Delete selected actions button
             document.getElementById('deleteActionButton').addEventListener('click', () => {
                 const selectedOptions = Array.from(document.getElementById('manageActionSelect').selectedOptions);
                 const selectedIds = selectedOptions.map(opt => opt.value);
@@ -1546,14 +1958,15 @@
                 showConfirm(`Confirm Deletion (${selectedIds.length})`, `This is permanent. Are you sure you want to delete these actions and all their votes: ${actionTitles}?`, async () => {
                     statusEl.textContent = `Deleting ${selectedIds.length} action(s)...`;
                     try {
-                        const batch = writeBatch(db);
+                        const batch = writeBatch(db); // Use batch for multiple deletions
                         selectedIds.forEach(id => {
-                            batch.delete(doc(db, 'governance_actions', id));
+                            batch.delete(doc(db, 'governance_actions', id)); // Delete action document
+                            // Also delete all associated individual votes for this action
                             regularMembersList.forEach(member => {
                                 batch.delete(doc(db, 'members_data', member, 'individual_votes', id));
                             });
                         });
-                        await batch.commit();
+                        await batch.commit(); // Commit the batch
                         statusEl.textContent = `${selectedIds.length} action(s) and associated votes deleted.`;
                     } catch(e) {
                         statusEl.textContent = 'Error during deletion.';
@@ -1562,8 +1975,34 @@
                 });
             });
 
-            document.getElementById('resetAllVotesBtn').addEventListener('click', () => { showConfirm("Confirm Reset", "Are you sure you want to delete ALL votes for ALL members? This cannot be undone.", async () => { const statusEl = document.getElementById('globalStatus'); statusEl.textContent = "Resetting votes..."; const promises = []; for(const member of regularMembersList) { const snapshot = await getDocs(collection(db, 'members_data', member, 'individual_votes')); snapshot.forEach(d => promises.push(deleteDoc(d.ref))); } await Promise.all(promises); statusEl.textContent = "All votes have been reset."; }); });
-            document.getElementById('resetAuditLogBtn').addEventListener('click', () => { showConfirm("Confirm Audit Log Reset", "This is permanent. Are you sure you want to delete the ENTIRE audit log?", async () => { const statusEl = document.getElementById('globalStatus'); statusEl.textContent = "Resetting audit log..."; const snapshot = await getDocs(collection(db, 'audit_log')); const promises = []; snapshot.forEach(d => promises.push(deleteDoc(d.ref))); await Promise.all(promises); statusEl.textContent = "Audit log has been reset."; }); });
+            // Reset all votes button (global control)
+            document.getElementById('resetAllVotesBtn').addEventListener('click', () => {
+                showConfirm("Confirm Reset", "Are you sure you want to delete ALL votes for ALL members? This cannot be undone.", async () => {
+                    const statusEl = document.getElementById('globalStatus');
+                    statusEl.textContent = "Resetting votes...";
+                    const promises = [];
+                    // Iterate through all members and delete their individual votes
+                    for(const member of regularMembersList) {
+                        const snapshot = await getDocs(collection(db, 'members_data', member, 'individual_votes'));
+                        snapshot.forEach(d => promises.push(deleteDoc(d.ref)));
+                    }
+                    await Promise.all(promises); // Wait for all deletions to complete
+                    statusEl.textContent = "All votes have been reset.";
+                });
+            });
+            
+            // Reset audit log button (global control)
+            document.getElementById('resetAuditLogBtn').addEventListener('click', () => {
+                showConfirm("Confirm Audit Log Reset", "This is permanent. Are you sure you want to delete the ENTIRE audit log?", async () => {
+                    const statusEl = document.getElementById('globalStatus');
+                    statusEl.textContent = "Resetting audit log...";
+                    const snapshot = await getDocs(collection(db, 'audit_log'));
+                    const promises = [];
+                    snapshot.forEach(d => promises.push(deleteDoc(d.ref))); // Delete all audit log documents
+                    await Promise.all(promises);
+                    statusEl.textContent = "Audit log has been reset.";
+                });
+            });
         });
     </script>
 </body>
